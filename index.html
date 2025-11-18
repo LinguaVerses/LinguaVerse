@@ -40,7 +40,7 @@
                     </div>
                     <button id="admin-notify-btn" class="hidden text-gray-500 hover:text-purple-600 relative" onclick="showPage('page-admin-notifications')">
                         <i data-lucide="bell"></i>
-                        <span id="admin-notify-badge" class="hidden absolute p-1 text-xs font-bold text-white bg-red-500 rounded-full text-center">...</span>
+                        <span id="admin-notify-badge" class="hidden absolute p-1 text-xs font-bold text-white bg-red-500 rounded-full text-center">0</span>
                     </button>
                     <button id="admin-settings-btn" class="hidden text-gray-500 hover:text-purple-600" onclick="showPage('page-admin-add-novel')">
                         <i data-lucide="settings"></i>
@@ -67,7 +67,7 @@
                         </div>
                     </div>
                     <div class="md:w-1/2 h-64 md:h-80 bg-purple-900 rounded-lg shadow-xl flex items-center justify-center">
-                        <span class="text-purple-300">Anime Reading Video</span>
+                        <span class="text-purple-300">Anime Reading Video / Image</span>
                     </div>
                 </div>
             </section>
@@ -105,6 +105,9 @@
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">มีบัญชีอยู่แล้ว?
                         <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="showPage('page-login')">เข้าสู่ระบบที่นี่</span>
+                    </p>
+                    <p class="text-sm text-gray-600 mt-2">หรือ 
+                        <span class="font-medium text-green-600 hover:text-green-500 cursor-pointer" onclick="showPage('page-add-point')">เติมคะแนน</span>
                     </p>
                 </div>
             </div>
@@ -175,6 +178,15 @@
                     <p id="novel-loading-jp" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
             </div>
+            
+            <div class="flex justify-center items-center space-x-2 mt-8">
+                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt; Previous</button>
+                <button class="px-3 py-1 border rounded-md bg-purple-600 text-white">1</button>
+                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">2</button>
+                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">3</button>
+                <span class="text-gray-600">...</span>
+                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">Next &gt;&gt;</button>
+            </div>
         </div>
         
         <div id="page-novel-detail" class="page">
@@ -201,6 +213,10 @@
                         </div>
                         <div id="detail-description" class="text-gray-600 novel-content mb-4">
                             <p>กำลังโหลดเรื่องย่อ...</p>
+                        </div>
+                        <h4 class="text-lg font-semibold text-purple-700 mb-2">ผลงานอื่นของผู้แต่ง</h4>
+                        <div id="detail-other-works" class="flex space-x-3 overflow-x-auto pb-2">
+                            <img src="https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover" class="rounded shadow-sm">
                         </div>
                     </div>
                 </div>
@@ -482,7 +498,7 @@
     </main>
 
     <footer class="text-center py-6 border-t border-gray-200 mt-12">
-        <p class="text-gray-500">Copyright © 2022; Designed by LinguaVerse</p>
+        <p class="text-gray-500">Copyright © 2022 Designed by LinguaVerse</p>
     </footer>
 
     <nav id="main-nav-mobile" class="fixed bottom-0 left-0 right-0 h-16 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden flex justify-around items-center z-50">
@@ -514,11 +530,11 @@
 
 
     <script>
-        // Scroll to Top Logic (ต้องอยู่นอก Module เพื่อให้ HTML เรียกได้ทันที)
         function scrollToTop() {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
         }
+        
         window.onscroll = function() {
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
