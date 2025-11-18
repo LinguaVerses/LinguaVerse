@@ -546,5 +546,18 @@
     </script>
     
     <script type="module" src="app.js"></script>
+
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[60] justify-center items-center p-4" onclick="window.closeImageModal()">
+        <div class="relative">
+            <img id="image-modal-content" src="" class="max-h-[85vh] max-w-full rounded-lg shadow-2xl border-4 border-white">
+            <button class="absolute -top-4 -right-4 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg" onclick="window.closeImageModal()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
 </body>
 </html>
