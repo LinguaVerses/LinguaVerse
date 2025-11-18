@@ -7,13 +7,13 @@
     
     <!-- **** START: FIXED URLS **** -->
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <!-- Google Font (Sarabun & Inter) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap)" rel="stylesheet">
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/sweetalert2@11](https://cdn.jsdelivr.net/npm/sweetalert2@11)"></script>
     <!-- Lucide Icons (Fixed Link) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
     <!-- **** END: FIXED URLS **** -->
     
     <!-- **** START: LINK TO NEW CSS FILE **** -->
@@ -27,7 +27,7 @@
         <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
             <!-- Logo -->
             <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('page-home')">
-                <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV" alt="Logo" class="rounded-full">
+                <img src="[https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV](https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV)" alt="Logo" class="rounded-full">
                 <span class="text-2xl font-bold text-purple-600">LinguaVerse</span>
             </div>
 
@@ -216,7 +216,7 @@
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="w-full md:w-1/3 lg:w-1/4">
-                        <img id="detail-cover-img" src="https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading..." alt="Novel Cover" class="w-full rounded-lg shadow-md">
+                        <img id="detail-cover-img" src="[https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading](https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading)..." alt="Novel Cover" class="w-full rounded-lg shadow-md">
                         <!-- **** START: UPDATED LIKE BUTTON ONCLICK **** -->
                         <button id="detail-like-btn" onclick="window.toggleNovelLike()" class="mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors">
                         <!-- **** END: UPDATED LIKE BUTTON ONCLICK **** -->
@@ -241,7 +241,7 @@
                         </div>
                         <h4 class="text-lg font-semibold text-purple-700 mb-2">ผลงานอื่นของผู้แต่ง</h4>
                         <div id="detail-other-works" class="flex space-x-3 overflow-x-auto pb-2">
-                            <img src="https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover" class="rounded shadow-sm">
+                            <img src="[https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover](https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover)" class="rounded shadow-sm">
                         </div>
                     </div>
                 </div>
@@ -276,7 +276,7 @@
                     <h4 class="text-2xl font-bold text-purple-700 mb-4">Comments</h4>
                     <div id="comment-input-box" class="mb-6">
                         <div class="flex items-center space-x-2 mb-2">
-                            <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me" class="rounded-full">
+                            <img src="[https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me](https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me)" class="rounded-full">
                             <span id="reader-comment-username" class="font-semibold">...</span>
                         </div>
                         <textarea id="reader-comment-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="แสดงความคิดเห็น..."></textarea>
@@ -381,14 +381,17 @@
                     <div class="border border-gray-300 rounded-md p-3">
                         <label class="block text-sm font-medium text-gray-700 mb-2">ประเภท (เลือกได้หลายข้อ)</label>
                         <div id="novel-categories-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Fantasy" class="novel-category-check"> <span>Fantasy</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Romance" class="novel-category-check"> <span>Romance</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Drama" class="novel-category-check"> <span>Drama</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Action" class="novel-category-check"> <span>Action</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Adult" class="novel-category-check"> <span>Adult</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Adventure" class="novel-category-check"> <span>Adventure</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Comedy" class="novel-category-check"> <span>Comedy</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Drama" class="novel-category-check"> <span>Drama</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Fantasy" class="novel-category-check"> <span>Fantasy</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Josei" class="novel-category-check"> <span>Josei</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Mature" class="novel-category-check"> <span>Mature</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Romance" class="novel-category-check"> <span>Romance</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Slice of Life" class="novel-category-check"> <span>Slice of Life</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Isekai" class="novel-category-check"> <span>Isekai</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Smut" class="novel-category-check"> <span>Smut</span></label>
                         </div>
                     </div>
                     
