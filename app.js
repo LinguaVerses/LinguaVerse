@@ -24,12 +24,12 @@ import {
 
 const firebaseConfig = {
     // ... วาง Config ที่คัดลอกมาจาก Firebase Console ที่นี่ ...
-    apiKey: "xxx",
-    authDomain: "xxx",
-    projectId: "xxx",
-    storageBucket: "xxx",
-    messagingSenderId: "xxx",
-    appId: "xxx"
+    apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
+    authDomain: "linguaverse-novel.firebaseapp.com",
+    projectId: "linguaverse-novel",
+    storageBucket: "linguaverse-novel.firebasestorage.app",
+    messagingSenderId: "31579058890",
+    appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
 };
 
 // --- Global Variables (สำหรับ App) ---
