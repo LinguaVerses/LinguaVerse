@@ -4,31 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinguaVerse - Novel Hub</title>
-    <!-- Tailwind CSS -->
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <!-- Google Font (Sarabun & Inter) -->
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap)" rel="stylesheet">
-    <!-- SweetAlert2 -->
-    <script src="[https://cdn.jsdelivr.net/npm/sweetalert2@11](https://cdn.jsdelivr.net/npm/sweetalert2@11)"></script>
-    <!-- Lucide Icons (Fixed Link) -->
-    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- **** START: LINK TO NEW CSS FILE **** -->
     <link rel="stylesheet" href="style.css">
-    <!-- **** END: LINK TO NEW CSS FILE **** -->
 </head>
 <body class="text-gray-800">
 
-    <!-- ===== Header & Main Navigation ===== -->
     <header class="bg-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <!-- Logo -->
             <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('page-home')">
-                <img src="[https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV](https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV)" alt="Logo" class="rounded-full">
+                <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV" alt="Logo" class="rounded-full">
                 <span class="text-2xl font-bold text-purple-600">LinguaVerse</span>
             </div>
 
-            <!-- Desktop Nav -->
             <div id="main-nav-desktop" class="hidden md:flex items-center space-x-6">
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="showPage('page-home')">Home</a>
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="showPage('page-novels-center')">Novels</a>
@@ -37,7 +28,6 @@
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="showPage('page-contact')">Contact Us</a>
             </div>
 
-            <!-- Auth Buttons -->
             <div class="flex items-center space-x-3">
                 <div id="auth-logged-out" class="flex items-center space-x-3">
                     <button class="text-gray-600 hover:text-purple-600 font-medium" onclick="showPage('page-register')">ลงทะเบียน</button>
@@ -63,10 +53,8 @@
         </nav>
     </header>
 
-    <!-- ===== Main Content Area ===== -->
     <main class="container mx-auto p-4 md:p-8">
         
-        <!-- ===== Page: Home (Default) ===== -->
         <div id="page-home" class="page active">
             <section class="bg-gradient-to-r from-purple-600 to-purple-400 text-white p-8 md:p-12 rounded-xl shadow-lg">
                 <div class="flex flex-col md:flex-row items-center justify-between">
@@ -85,15 +73,12 @@
             </section>
             <div class="mt-8 p-6 bg-white rounded-lg shadow">
                 <h2 class="text-2xl font-bold mb-4">นิยายอัปเดตล่าสุด</h2>
-                <!-- **** START: ADDED CONTAINER FOR NEW UPDATES **** -->
                 <div id="home-latest-updates" class="space-y-2">
                     <p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>
                 </div>
-                <!-- **** END: ADDED CONTAINER FOR NEW UPDATES **** -->
             </div>
         </div>
 
-        <!-- ===== Page: Register ===== -->
         <div id="page-register" class="page">
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">สร้างบัญชีใหม่</h2>
@@ -118,17 +103,13 @@
                     <button type="submit" id="register-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">ลงทะเบียน (Sign Up)</button>
                 </form>
                 <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">มีบัญชีอยู่แล้ว? 
+                    <p class="text-sm text-gray-600">มีบัญชีอยู่แล้ว?
                         <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="showPage('page-login')">เข้าสู่ระบบที่นี่</span>
-                    </p>
-                    <p class="text-sm text-gray-600 mt-2">หรือ 
-                        <span class="font-medium text-green-600 hover:text-green-500 cursor-pointer" onclick="showPage('page-add-point')">เติมคะแนน</span>
                     </p>
                 </div>
             </div>
         </div>
         
-        <!-- ===== Page: Login ===== -->
         <div id="page-login" class="page">
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">เข้าสู่ระบบ</h2>
@@ -139,26 +120,23 @@
                     </div>
                     <div>
                         <label for="login-password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
-                        <!-- **** START: THIS IS THE FIX (Added Wrapper and Button) **** -->
                         <div class="relative">
                             <input type="password" id="login-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
                             <button type="button" id="login-toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
                                 <i id="login-toggle-icon" data-lucide="eye-off" class="h-5 w-5"></i>
                             </button>
                         </div>
-                        <!-- **** END: THIS IS THE FIX **** -->
                     </div>
                     <button type="submit" id="login-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">เข้าสู่ระบบ (Login)</button>
                 </form>
                 <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">ยังไม่มีบัญชี? 
+                    <p class="text-sm text-gray-600">ยังไม่มีบัญชี?
                         <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="showPage('page-register')">สมัครสมาชิก</span>
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- ===== Page: Novels Center ===== -->
         <div id="page-novels-center" class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Novels Center</h2>
             <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-center">
@@ -197,26 +175,14 @@
                     <p id="novel-loading-jp" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
             </div>
-            
-            <div class="flex justify-center items-center space-x-2 mt-8">
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt; Previous</button>
-                <button class="px-3 py-1 border rounded-md bg-purple-600 text-white">1</button>
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">2</button>
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">3</button>
-                <span class="text-gray-600">...</span>
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">Next &gt;&gt;</button>
-            </div>
         </div>
         
-        <!-- ===== Page: Novel Detail ===== -->
         <div id="page-novel-detail" class="page">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="w-full md:w-1/3 lg:w-1/4">
-                        <img id="detail-cover-img" src="[https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading](https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading)..." alt="Novel Cover" class="w-full rounded-lg shadow-md">
-                        <!-- **** START: UPDATED LIKE BUTTON ONCLICK **** -->
+                        <img id="detail-cover-img" src="https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading..." alt="Novel Cover" class="w-full rounded-lg shadow-md">
                         <button id="detail-like-btn" onclick="window.toggleNovelLike()" class="mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors">
-                        <!-- **** END: UPDATED LIKE BUTTON ONCLICK **** -->
                             <i data-lucide="heart"></i>
                             <span>Like (...)</span>
                         </button>
@@ -236,10 +202,6 @@
                         <div id="detail-description" class="text-gray-600 novel-content mb-4">
                             <p>กำลังโหลดเรื่องย่อ...</p>
                         </div>
-                        <h4 class="text-lg font-semibold text-purple-700 mb-2">ผลงานอื่นของผู้แต่ง</h4>
-                        <div id="detail-other-works" class="flex space-x-3 overflow-x-auto pb-2">
-                            <img src="[https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover](https://placehold.co/100x150/A5B4FC/FFFFFF?text=Cover)" class="rounded shadow-sm">
-                        </div>
                     </div>
                 </div>
                 
@@ -258,7 +220,6 @@
             </div>
         </div>
         
-        <!-- ===== Page: Reader ===== -->
         <div id="page-reader" class="page">
             <div class="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-lg">
                 <div class="mb-8">
@@ -273,20 +234,18 @@
                     <h4 class="text-2xl font-bold text-purple-700 mb-4">Comments</h4>
                     <div id="comment-input-box" class="mb-6">
                         <div class="flex items-center space-x-2 mb-2">
-                            <img src="[https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me](https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me)" class="rounded-full">
+                            <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me" class="rounded-full">
                             <span id="reader-comment-username" class="font-semibold">...</span>
                         </div>
                         <textarea id="reader-comment-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="แสดงความคิดเห็น..."></textarea>
                         <button id="reader-comment-post-btn" class="mt-2 bg-purple-600 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700">Post Comment</button>
                     </div>
                     <div id="reader-comment-container" class="space-y-4">
-                        <!-- Comments will be loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </div>
         
-        <!-- ===== Page: Admin Notifications (NEW) ===== -->
         <div id="page-admin-notifications" class="page">
             <div class="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-purple-700 mb-6">คอมเมนต์ที่ยังไม่อ่าน</h2>
@@ -296,7 +255,6 @@
             </div>
         </div>
 
-        <!-- ===== Page: Add Point (Stripe) ===== -->
         <div id="page-add-point" class="page">
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">เติมคะแนน</h2>
@@ -320,14 +278,13 @@
                     </button>
                 </form>
                 <div class="mt-6 text-center">
-                    <p class="text-sm text-gray-600">ยังไม่มีบัญชี? 
+                    <p class="text-sm text-gray-600">ยังไม่มีบัญชี?
                         <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="showPage('page-register')">สมัครสมาชิก</span>
                     </p>
                 </div>
             </div>
         </div>
         
-        <!-- ===== Page: Admin - Add Novel ===== -->
         <div id="page-admin-add-novel" class="page p-4 md:p-0">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
                 <h2 class="text-2xl font-bold text-purple-700 mb-4">Admin: จัดการนิยาย</h2>
@@ -342,7 +299,7 @@
                         <select id="edit-novel-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                             <option value="">(กำลังโหลดนิยาย...)</option>
                         </select>
-                        <button type"button" id="load-novel-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">Load</button>
+                        <button type="button" id="load-novel-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">Load</button>
                     </div>
                 </div>
 
@@ -426,8 +383,7 @@
                 </form>
             </div>
         </div>
-        
-        <!-- ===== Page: Admin - Add Chapter ===== -->
+    
         <div id="page-admin-add-chapter" class="page p-4 md:p-0">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
                 <h2 class="text-2xl font-bold text-purple-700 mb-4">Admin: จัดการตอน</h2>
@@ -449,7 +405,7 @@
                             <select id="edit-chapter-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" disabled>
                                 <option value="">(กรุณาเลือกนิยายก่อน)</option>
                             </select>
-                            <button type"button" id="load-chapter-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600" disabled>Load</button>
+                            <button type="button" id="load-chapter-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600" disabled>Load</button>
                         </div>
                     </div>
                 </div>
@@ -510,7 +466,6 @@
             </div>
         </div>
 
-        <!-- ===== Other Pages (Placeholder) ===== -->
         <div id="page-coffee" class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Coffee</h2>
             <p>หน้านี้สำหรับรับการสนับสนุน (Donate) ... (TODO)</p>
@@ -526,12 +481,10 @@
 
     </main>
 
-    <!-- ===== Footer ===== -->
     <footer class="text-center py-6 border-t border-gray-200 mt-12">
         <p class="text-gray-500">Copyright © 2022; Designed by LinguaVerse</p>
     </footer>
 
-    <!-- ===== Mobile Bottom Navigation ===== -->
     <nav id="main-nav-mobile" class="fixed bottom-0 left-0 right-0 h-16 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden flex justify-around items-center z-50">
         <a href="#" class="flex flex-col items-center text-gray-500 hover:text-purple-600" onclick="showPage('page-home')">
             <i data-lucide="home"></i>
@@ -555,22 +508,17 @@
         </a>
     </nav>
 
-    <!-- ===== Scroll to Top Button ===== -->
     <button id="scrollTopBtn" onclick="scrollToTop()">
         <i data-lucide="arrow-up"></i>
     </button>
 
 
-    <!-- ===== JavaScript ===== -->
     <script>
-        // --- Scroll to Top (ย้ายมาไว้ตรงนี้เพื่อให้ HTML/JS ทำงานได้แม้ JS หลักจะโหลดช้า) ---
-        // (ฟังก์ชันนี้จะถูกเรียกโดย onclick ใน HTML)
+        // Scroll to Top Logic (ต้องอยู่นอก Module เพื่อให้ HTML เรียกได้ทันที)
         function scrollToTop() {
-            document.body.scrollTop = 0; // For Safari
-            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
         }
-        
-        // (ฟังก์ชันนี้จะทำงานเมื่อ window โหลด)
         window.onscroll = function() {
             const scrollTopBtn = document.getElementById('scrollTopBtn');
             if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
@@ -581,13 +529,6 @@
         };
     </script>
     
-    <!-- 
-      ==================================================
-      (ส่วนนี้ไม่ต้องใส่อะไรแล้ว เราย้ายไป app.js)
-      ==================================================
-    -->
-    <!-- **** START: LINK TO NEW JS FILE **** -->
     <script type="module" src="app.js"></script>
-    <!-- **** END: LINK TO NEW JS FILE **** -->
 </body>
 </html>
