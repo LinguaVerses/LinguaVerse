@@ -24,12 +24,12 @@ import {
 
 const firebaseConfig = {
     // ... วาง Config ที่คัดลอกมาจาก Firebase Console ที่นี่ ...
-    apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
-    authDomain: "linguaverse-novel.firebaseapp.com",
-    projectId: "linguaverse-novel",
-    storageBucket: "linguaverse-novel.firebasestorage.app",
-    messagingSenderId: "31579058890",
-    appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
+    apiKey: "xxx",
+    authDomain: "xxx",
+    projectId: "xxx",
+    storageBucket: "xxx",
+    messagingSenderId: "xxx",
+    appId: "xxx"
 };
 
 // --- Global Variables (สำหรับ App) ---
@@ -155,7 +155,6 @@ window.onload = function() {
     }
 
     // --- Password Toggle ---
-    // (ส่วนของ Register)
     const regTogglePasswordBtn = document.getElementById('reg-toggle-password');
     const regPasswordInput = document.getElementById('reg-password');
     const regToggleIcon = document.getElementById('reg-toggle-icon');
@@ -173,7 +172,6 @@ window.onload = function() {
         });
     }
 
-    // (ส่วนของ Login)
     const loginTogglePasswordBtn = document.getElementById('login-toggle-password');
     const loginPasswordInput = document.getElementById('login-password');
     const loginToggleIcon = document.getElementById('login-toggle-icon');
@@ -240,12 +238,12 @@ window.onload = function() {
                         loadNovels();
                     } else {
                         console.error("No user data found in Firestore!");
-                        logout(); 
+                        window.logout(); 
                     }
                 })
                 .catch(error => {
                     console.error("Error getting user data:", error);
-                    logout(); 
+                    window.logout(); 
                 });
         } else {
             // User is LOGGED OUT
@@ -273,8 +271,6 @@ window.onload = function() {
     });
 
     // --- Auth Functions ---
-
-    // 1. Register
     const registerForm = document.getElementById('register-form');
     registerForm.addEventListener('submit', (e) => {
         e.preventDefault(); 
@@ -319,7 +315,6 @@ window.onload = function() {
             });
     });
 
-    // 2. Login
     const loginForm = document.getElementById('login-form');
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -345,7 +340,6 @@ window.onload = function() {
             });
     });
 
-    // 3. Logout
     window.logout = function() { 
         signOut(auth).then(() => {
             window.showPage('page-home');
@@ -354,13 +348,30 @@ window.onload = function() {
         });
     }
 
-
     // --- Admin Functions ---
     
     async function loadNovelsForDropdown(elementId) {
         const selectEl = document.getElementById(elementId);
+        const authorDatalist = document.getElementById('author-datalist'); 
+        
         if (!db || !selectEl) return;
         
+        // Helper to update author list
+        const updateAuthorList = (novels) => {
+            if (!authorDatalist) return;
+            const authors = new Set();
+            novels.forEach(n => {
+                if (n.author) authors.add(n.author.trim());
+            });
+            
+            authorDatalist.innerHTML = '';
+            authors.forEach(author => {
+                const option = document.createElement('option');
+                option.value = author;
+                authorDatalist.appendChild(option);
+            });
+        };
+
         if (novelCache.length > 0) {
             selectEl.innerHTML = `<option value="">เลือกนิยาย (${novelCache.length} เรื่อง)</option>`;
             novelCache.forEach(novel => {
@@ -369,6 +380,7 @@ window.onload = function() {
                 option.textContent = `${novel.title_en} (${novel.language})`;
                 selectEl.appendChild(option);
             });
+            updateAuthorList(novelCache); 
             return;
         }
         
@@ -388,6 +400,7 @@ window.onload = function() {
                 option.textContent = `${novel.title_en} (${novel.language.toUpperCase()})`;
                 selectEl.appendChild(option);
             });
+            updateAuthorList(novelCache);
         } catch (error) {
             console.error("Error loading novels for dropdown:", error);
             selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
@@ -687,7 +700,7 @@ window.onload = function() {
                     
                     const card = document.createElement('div');
                     card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
-                    card.setAttribute('onclick', `showNovelDetail('${novelId}', '${novel.status}')`); 
+                    card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
                     
                     let licensedBadge = '';
                     if (novel.isLicensed) {
@@ -807,7 +820,10 @@ window.onload = function() {
                     categoriesContainer.innerHTML = '<span class="text-gray-400 text-sm">ไม่มีประเภท</span>';
                 }
                 
-                // **** ADDED: Check Like Status ****
+                // **** Load Other Works ****
+                loadAuthorOtherWorks(novel.author, novelId);
+                
+                // **** Check Like Status ****
                 checkUserLikeStatus(novelId, novel.totalLikes || 0);
                 
                 lucide.createIcons();
@@ -821,15 +837,19 @@ window.onload = function() {
         }
     }
 
-    // **** ADDED: Missing Function ****
+    // --- Like Functions (Fixed) ---
     async function checkUserLikeStatus(novelId, totalLikes) {
         const likeBtn = document.getElementById('detail-like-btn');
-        likeBtn.innerHTML = `<i data-lucide="heart"></i> <span>Like (${totalLikes})</span>`;
-        lucide.createIcons();
+        const likeIcon = likeBtn.querySelector('i') || likeBtn.querySelector('svg');
+        
+        const likeText = likeBtn.querySelector('span');
+        if(likeText) likeText.textContent = `Like (${totalLikes})`;
 
         if (!currentUser) {
             likeBtn.disabled = false; 
-            return; // ไม่ต้องเช็คต่อถ้ายังไม่ login (กดแล้วจะเด้งไปหน้า login เอง)
+            likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors hover:bg-pink-200 cursor-pointer";
+            if(likeIcon) likeIcon.setAttribute('fill', 'none');
+            return;
         }
 
         try {
@@ -839,17 +859,151 @@ window.onload = function() {
             likeBtn.disabled = false;
             
             if (docSnap.exists()) {
-                // User Liked this
-                likeBtn.className = "mt-4 w-full bg-pink-500 text-white py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors hover:bg-pink-600";
-                likeBtn.querySelector('svg').setAttribute('fill', 'currentColor');
+                likeBtn.className = "mt-4 w-full bg-pink-600 text-white py-2 rounded-lg flex items-center justify-center space-x-2 shadow-md transition-transform transform active:scale-95";
+                if(likeIcon) likeIcon.setAttribute('fill', 'currentColor');
+                likeBtn.setAttribute('data-liked', 'true');
             } else {
-                // User hasn't liked
-                likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors hover:bg-pink-200";
-                likeBtn.querySelector('svg').setAttribute('fill', 'none');
+                likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors";
+                if(likeIcon) likeIcon.setAttribute('fill', 'none');
+                likeBtn.setAttribute('data-liked', 'false');
             }
+            if (window.lucide) window.lucide.createIcons();
         } catch (error) {
             console.error("Error checking like status", error);
             likeBtn.disabled = false;
+        }
+    }
+
+    window.toggleNovelLike = async function() {
+        if (!currentUser) {
+            Swal.fire({
+                icon: 'info',
+                title: 'กรุณาเข้าสู่ระบบ',
+                text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะกด Like ได้',
+                confirmButtonColor: '#8B5CF6',
+                confirmButtonText: 'ไปหน้า Login'
+            }).then(() => window.showPage('page-login'));
+            return;
+        }
+        
+        if (!currentOpenNovelId) return;
+        
+        const likeBtn = document.getElementById('detail-like-btn');
+        likeBtn.disabled = true;
+        
+        const novelDocRef = doc(db, 'novels', currentOpenNovelId);
+        const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', currentOpenNovelId);
+        
+        try {
+            const isLiked = likeBtn.getAttribute('data-liked') === 'true';
+
+            if (isLiked) {
+                await deleteDoc(likeDocRef);
+                await updateDoc(novelDocRef, {
+                    totalLikes: increment(-1) 
+                });
+            } else {
+                await setDoc(likeDocRef, { likedAt: Timestamp.now() });
+                await updateDoc(novelDocRef, {
+                    totalLikes: increment(1)
+                });
+            }
+
+            const novelSnap = await getDoc(novelDocRef);
+            checkUserLikeStatus(currentOpenNovelId, novelSnap.data().totalLikes);
+            
+        } catch (error) {
+            console.error("Error toggling like:", error);
+            if (error.code === 'permission-denied') {
+                Swal.fire('Permission Error', 'กรุณาตรวจสอบ Firestore Rules ใน Console', 'error');
+            } else {
+                Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+            }
+            likeBtn.disabled = false;
+        }
+    }
+    
+    // --- Author Other Works Logic ---
+    async function loadAuthorOtherWorks(authorName, currentId) {
+        const container = document.getElementById('detail-other-works');
+        if(!container) return;
+        
+        container.innerHTML = '<div class="p-2 text-gray-400 text-sm animate-pulse">กำลังค้นหาผลงานอื่น...</div>';
+        
+        try {
+            const q = query(collection(db, "novels"), where("author", "==", authorName));
+            const querySnapshot = await getDocs(q);
+            
+            const otherWorks = [];
+            querySnapshot.forEach((doc) => {
+                if (doc.id !== currentId) {
+                    otherWorks.push({ id: doc.id, ...doc.data() });
+                }
+            });
+
+            container.innerHTML = '';
+
+            if (otherWorks.length === 0) {
+                container.innerHTML = '<div class="p-2 text-gray-400 text-sm">ไม่มีผลงานอื่นๆ ของผู้แต่งท่านนี้</div>';
+                return;
+            }
+
+            otherWorks.forEach(work => {
+                const item = document.createElement('div');
+                item.className = "flex-shrink-0 w-28 flex flex-col items-center space-y-2 group";
+                
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = "relative overflow-hidden rounded-md shadow-md w-full h-40 cursor-zoom-in";
+                
+                const img = document.createElement('img');
+                img.src = work.coverImageUrl || 'https://placehold.co/100x150';
+                img.className = "w-full h-full object-cover transition-transform duration-300 group-hover:scale-110";
+                img.alt = work.title_en;
+                
+                imgWrapper.onclick = (e) => {
+                    e.stopPropagation(); 
+                    window.openImageModal(work.coverImageUrl);
+                };
+
+                imgWrapper.appendChild(img);
+
+                const title = document.createElement('span');
+                title.className = "text-xs text-center font-medium text-gray-600 line-clamp-2 group-hover:text-purple-600 cursor-pointer transition-colors";
+                title.textContent = work.title_en;
+                
+                title.onclick = () => {
+                    window.showNovelDetail(work.id, work.status);
+                    window.scrollToTop();
+                };
+
+                item.appendChild(imgWrapper);
+                item.appendChild(title);
+                container.appendChild(item);
+            });
+
+        } catch (error) {
+            console.error("Error loading other works:", error);
+            container.innerHTML = '<div class="p-2 text-red-400 text-sm">ไม่สามารถโหลดข้อมูลได้</div>';
+        }
+    }
+    
+    // --- Image Modal Logic ---
+    window.openImageModal = function(src) {
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('image-modal-content');
+        if(modal && modalImg) {
+            modalImg.src = src;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+    
+    window.closeImageModal = function() {
+        const modal = document.getElementById('image-modal');
+        if(modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     }
 
@@ -1076,7 +1230,7 @@ window.onload = function() {
                     </div>
                     <p class="text-gray-600 text-sm">ใน: <strong>${novelTitle}</strong> / <i>${comment.chapterTitle || '...'}</i></p>
                     <p class="p-2 bg-white border rounded-md">${comment.message.replace(/\n/g, '<br>')}</p>
-                    <button onclick="markCommentAsRead('${comment.id}')" class="text-sm text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md">
+                    <button onclick="window.markCommentAsRead('${comment.id}')" class="text-sm text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md">
                         Mark as Read
                     </button>
                 `;
@@ -1198,59 +1352,6 @@ window.onload = function() {
         }
     }
     document.getElementById('reader-comment-post-btn').addEventListener('click', saveComment);
-
-    // --- Like Button Function ---
-    window.toggleNovelLike = async function() {
-        // 1. ตรวจสอบ Login
-        if (!currentUser) {
-            Swal.fire({
-                icon: 'info',
-                title: 'กรุณาเข้าสู่ระบบ',
-                text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะกด Like ได้',
-                confirmButtonColor: '#8B5CF6',
-                confirmButtonText: 'ไปหน้า Login'
-            }).then(() => window.showPage('page-login'));
-            return;
-        }
-        
-        // 2. ตรวจสอบว่ามี Novel ID
-        if (!currentOpenNovelId) {
-            console.error("No novel ID selected!");
-            return;
-        }
-        
-        const likeBtn = document.getElementById('detail-like-btn');
-        likeBtn.disabled = true; // ปิดปุ่มชั่วคราว
-        
-        const novelDocRef = doc(db, 'novels', currentOpenNovelId);
-        const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', currentOpenNovelId);
-        
-        try {
-            const docSnap = await getDoc(likeDocRef);
-            if (docSnap.exists()) {
-                // --- 3. เคย Like แล้ว (กำลัง Unlike) ---
-                await deleteDoc(likeDocRef);
-                await updateDoc(novelDocRef, {
-                    totalLikes: increment(-1) 
-                });
-                const novelSnap = await getDoc(novelDocRef);
-                checkUserLikeStatus(currentOpenNovelId, novelSnap.data().totalLikes);
-                
-            } else {
-                // --- 4. ยังไม่เคย Like (กำลัง Like) ---
-                await setDoc(likeDocRef, { likedAt: Timestamp.now() });
-                await updateDoc(novelDocRef, {
-                    totalLikes: increment(1)
-                });
-                const novelSnap = await getDoc(novelDocRef);
-                checkUserLikeStatus(currentOpenNovelId, novelSnap.data().totalLikes);
-            }
-        } catch (error) {
-            console.error("Error toggling like:", error);
-            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-            likeBtn.disabled = false; // เปิดปุ่มคืน
-        }
-    }
 
     // --- Main Page Functions ---
     
