@@ -43,11 +43,13 @@ body {
     display: block;
 }
 
-/* Rich Editor Overflow */
+/* --- ADDED FOR RICH EDITOR OVERFLOW --- */
+/* แก้ปัญหา "ล้นกรอบ" และเพิ่ม Scrollbar */
 [contenteditable="true"] {
     overflow-y: auto; /* เพิ่มแถบเลื่อนแนวตั้งอัตโนมัติ */
     word-break: break-word; /* ตัดคำที่ยาวเกิน */
 }
+/* --- END ADDED SECTION --- */
 
 /* Custom Scroll to Top */
 #scrollTopBtn {
@@ -65,6 +67,7 @@ body {
     width: 50px;
     height: 50px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
 }
 /* สำหรับ Mobile ให้ขยับปุ่มขึ้นไปอยู่เหนือ Bottom Nav */
 @media (max-width: 768px) {
@@ -73,6 +76,7 @@ body {
     }
 }
 
+/* --- ADDED FOR RICH EDITOR --- */
 /* Custom Style สำหรับปุ่มเลือกสี */
 .toolbar-color-picker {
     -webkit-appearance: none;
@@ -87,22 +91,28 @@ body {
     cursor: pointer;
 }
 .toolbar-color-picker::-webkit-color-swatch-wrapper {
-    padding: 2px;
+    padding: 2px; /* สร้างขอบในเล็กน้อย */
 }
 .toolbar-color-picker::-webkit-color-swatch {
-    border: 1px solid #9ca3af;
+    border: 1px solid #9ca3af; /* สีกรอบ */
     border-radius: 4px;
 }
+/* สำหรับ Firefox */
 .toolbar-color-picker::-moz-color-swatch {
     border: 1px solid #9ca3af;
     border-radius: 4px;
 }
 
-/* Admin Badge */
+/* --- START: ADDED FOR ADMIN BADGE --- */
+/* สไตล์สำหรับป้ายแจ้งเตือน (ตัวเลข) */
 #admin-notify-badge {
     min-width: 20px;
-    height: 20px;
-    line-height: 20px;
+    height: 20px; 
+    line-height: 12px; /* ปรับให้ตัวเลขกลาง */
     top: -8px;
     right: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+/* --- END: ADDED FOR ADMIN BADGE --- */
