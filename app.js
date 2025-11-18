@@ -32,19 +32,566 @@ const firebaseConfig = {
     appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
 };
 
-// --- Global Variables (สำหรับ App) ---
+// --- Global Variables ---
 let app, auth, db;
-let currentUser = null; // เก็บข้อมูล user (auth)
-let currentUserData = null; // เก็บข้อมูล user (firestore)
-let currentOpenNovelId = null; // เก็บ ID นิยายที่กำลังเปิดอ่าน
-let currentOpenChapterId = null; // เก็บ ID ตอนที่กำลังอ่าน
-let currentOpenChapterTitle = null; // เก็บชื่อตอนที่กำลังอ่าน
-let novelCache = []; // เก็บ Cache นิยายที่โหลดมา
-let currentEditingNovelId = null; // สำหรับ Edit Mode
-let currentEditingChapterId = null; // สำหรับ Edit Mode
+let currentUser = null; 
+let currentUserData = null;
+let currentOpenNovelId = null;
+let currentOpenChapterId = null;
+let currentOpenChapterTitle = null;
+let novelCache = [];
+let currentEditingNovelId = null;
+let currentEditingChapterId = null;
 
+// ============================================================
+//  HELPER FUNCTIONS (ประกาศไว้ข้างนอก เพื่อให้เรียกใช้ได้ทั่วถึง)
+// ============================================================
 
-// --- Window Functions (เพื่อให้ HTML เรียกใช้ได้) ---
+async function loadNovelsForDropdown(elementId) {
+    const selectEl = document.getElementById(elementId);
+    const authorDatalist = document.getElementById('author-datalist'); 
+    
+    if (!db || !selectEl) return;
+    
+    const updateAuthorList = (novels) => {
+        if (!authorDatalist) return;
+        const authors = new Set();
+        novels.forEach(n => {
+            if (n.author) authors.add(n.author.trim());
+        });
+        
+        authorDatalist.innerHTML = '';
+        authors.forEach(author => {
+            const option = document.createElement('option');
+            option.value = author;
+            authorDatalist.appendChild(option);
+        });
+    };
+
+    if (novelCache.length > 0) {
+        selectEl.innerHTML = `<option value="">เลือกนิยาย (${novelCache.length} เรื่อง)</option>`;
+        novelCache.forEach(novel => {
+            const option = document.createElement('option');
+            option.value = novel.id;
+            option.textContent = `${novel.title_en} (${novel.language})`;
+            selectEl.appendChild(option);
+        });
+        updateAuthorList(novelCache); 
+        return;
+    }
+    
+    selectEl.innerHTML = '<option value="">กำลังโหลดนิยาย...</option>';
+    try {
+        const querySnapshot = await getDocs(collection(db, "novels"));
+        novelCache = []; 
+        selectEl.innerHTML = `<option value="">เลือกนิยาย (${querySnapshot.size} เรื่อง)</option>`;
+        
+        querySnapshot.forEach((doc) => {
+            const novel = doc.data();
+            novel.id = doc.id;
+            novelCache.push(novel); 
+            
+            const option = document.createElement('option');
+            option.value = novel.id;
+            option.textContent = `${novel.title_en} (${novel.language.toUpperCase()})`;
+            selectEl.appendChild(option);
+        });
+        updateAuthorList(novelCache);
+    } catch (error) {
+        console.error("Error loading novels for dropdown:", error);
+        selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
+    }
+}
+
+async function loadAdminNotifications() {
+    const container = document.getElementById('admin-notify-container');
+    if (!db || !container) return;
+    
+    container.innerHTML = '<p class="text-gray-500 p-3">กำลังโหลดการแจ้งเตือน...</p>';
+    try {
+        const q = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
+        const querySnapshot = await getDocs(q);
+        
+        let unreadComments = [];
+        querySnapshot.forEach((doc) => {
+            unreadComments.push({ id: doc.id, ...doc.data() });
+        });
+        unreadComments.sort((a, b) => b.createdAt - a.createdAt);
+        
+        container.innerHTML = ''; 
+        
+        if (unreadComments.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 p-3">ไม่มีคอมเมนต์ที่ยังไม่อ่าน</p>';
+            return;
+        }
+        
+        unreadComments.forEach(comment => {
+            const novel = novelCache.find(n => n.id === comment.novelId);
+            const novelTitle = novel ? novel.title_en : 'นิยายที่ถูกลบไปแล้ว';
+        
+            const card = document.createElement('div');
+            card.id = `comment-card-${comment.id}`; 
+            card.className = "p-3 border rounded-lg bg-gray-50 space-y-2";
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold text-purple-700">${comment.username}</span>
+                    <span class="text-xs text-gray-500">${comment.createdAt.toDate().toLocaleString()}</span>
+                </div>
+                <p class="text-gray-600 text-sm">ใน: <strong>${novelTitle}</strong> / <i>${comment.chapterTitle || '...'}</i></p>
+                <p class="p-2 bg-white border rounded-md">${comment.message.replace(/\n/g, '<br>')}</p>
+                <button onclick="window.markCommentAsRead('${comment.id}')" class="text-sm text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md">
+                    Mark as Read
+                </button>
+            `;
+            container.appendChild(card);
+        });
+        
+    } catch (error) {
+        console.error("Error loading admin notifications:", error);
+        container.innerHTML = '<p class="text-red-500 p-3">ไม่สามารถโหลดการแจ้งเตือนได้</p>';
+    }
+}
+
+async function loadNovels() {
+    if (!db) return;
+    const containers = {
+        'KR': document.getElementById('novel-container-kr'),
+        'CN': document.getElementById('novel-container-cn'),
+        'EN': document.getElementById('novel-container-en'),
+        'JP': document.getElementById('novel-container-jp')
+    };
+    ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
+        containers[lang].innerHTML = ''; 
+        const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
+        if (loadingText) loadingText.style.display = 'block'; 
+    });
+    const homeUpdatesContainer = document.getElementById('home-latest-updates');
+    homeUpdatesContainer.innerHTML = ''; // ล้างหน้า Home
+    
+    try {
+        const querySnapshot = await getDocs(collection(db, "novels"));
+        novelCache = []; 
+        let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
+        const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
+        
+        let allNovels = [];
+        querySnapshot.forEach((doc) => {
+            allNovels.push({ id: doc.id, ...doc.data() });
+        });
+        allNovels.sort((a, b) => {
+            const timeA = a.lastChapterUpdatedAt ? a.lastChapterUpdatedAt.toDate().getTime() : 0;
+            const timeB = b.lastChapterUpdatedAt ? b.lastChapterUpdatedAt.toDate().getTime() : 0;
+            return timeB - timeA;
+        });
+        allNovels.forEach(novel => {
+            const novelId = novel.id;
+            novelCache.push(novel); 
+            
+            const lang = novel.language.toUpperCase(); 
+            
+            if (containers[lang]) {
+                novelCount[lang]++;
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
+                card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
+                
+                let licensedBadge = '';
+                if (novel.isLicensed) {
+                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
+                }
+                
+                let newBadge = '';
+                let isNew = false;
+                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > threeDaysAgo) {
+                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
+                    isNew = true;
+                }
+                
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
+                        ${licensedBadge}
+                        ${newBadge}
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
+                    </div>
+                `;
+                containers[lang].appendChild(card);
+                
+                if (isNew && homeUpdatesContainer.childElementCount < 5) {
+                     const homeCard = document.createElement('div');
+                     homeCard.className = "flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer";
+                     homeCard.onclick = () => window.showNovelDetail(novelId, novel.status);
+                     homeCard.innerHTML = `
+                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-12 h-16 object-cover rounded">
+                        <div>
+                            <h5 class="font-semibold text-purple-700">${novel.title_en}</h5>
+                            <p class="text-sm text-gray-500">${novel.author}</p>
+                        </div>
+                     `;
+                     homeUpdatesContainer.appendChild(homeCard);
+                }
+            }
+        });
+        ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
+            const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
+            if (loadingText) loadingText.style.display = 'none'; 
+            
+            if (novelCount[lang] === 0) {
+                containers[lang].innerHTML = '<p class="text-gray-500 col-span-full">ยังไม่มีนิยายในหมวดนี้...</p>';
+            }
+        });
+        if (homeUpdatesContainer.childElementCount === 0) {
+            homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>';
+        }
+
+    } catch (error) {
+        console.error("Error loading novels: ", error);
+        ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
+            containers[lang].innerHTML = '<p class="text-red-500 col-span-full">ไม่สามารถโหลดนิยายได้</p>';
+            const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
+            if (loadingText) loadingText.style.display = 'none';
+        });
+    }
+}
+
+async function checkAdminNotifications() {
+    if (!db || !currentUserData || currentUserData.role !== 'admin') {
+        return;
+    }
+    
+    const badge = document.getElementById('admin-notify-badge');
+    try {
+        const q = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
+        const querySnapshot = await getDocs(q);
+        const unreadCount = querySnapshot.size;
+        
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error("Error checking admin notifications:", error);
+    }
+}
+
+// --- Helper for Author Other Works ---
+async function loadAuthorOtherWorks(authorName, currentId) {
+    const container = document.getElementById('detail-other-works');
+    if(!container) return;
+    
+    container.innerHTML = '<div class="p-2 text-gray-400 text-sm animate-pulse">กำลังค้นหาผลงานอื่น...</div>';
+    
+    try {
+        const q = query(collection(db, "novels"), where("author", "==", authorName));
+        const querySnapshot = await getDocs(q);
+        
+        const otherWorks = [];
+        querySnapshot.forEach((doc) => {
+            if (doc.id !== currentId) {
+                otherWorks.push({ id: doc.id, ...doc.data() });
+            }
+        });
+
+        container.innerHTML = '';
+
+        if (otherWorks.length === 0) {
+            container.innerHTML = '<div class="p-2 text-gray-400 text-sm">ไม่มีผลงานอื่นๆ ของผู้แต่งท่านนี้</div>';
+            return;
+        }
+
+        otherWorks.forEach(work => {
+            const item = document.createElement('div');
+            item.className = "flex-shrink-0 w-28 flex flex-col items-center space-y-2 group";
+            
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = "relative overflow-hidden rounded-md shadow-md w-full h-40 cursor-zoom-in";
+            
+            const img = document.createElement('img');
+            img.src = work.coverImageUrl || 'https://placehold.co/100x150';
+            img.className = "w-full h-full object-cover transition-transform duration-300 group-hover:scale-110";
+            img.alt = work.title_en;
+            
+            imgWrapper.onclick = (e) => {
+                e.stopPropagation(); 
+                window.openImageModal(work.coverImageUrl);
+            };
+
+            imgWrapper.appendChild(img);
+
+            const title = document.createElement('span');
+            title.className = "text-xs text-center font-medium text-gray-600 line-clamp-2 group-hover:text-purple-600 cursor-pointer transition-colors";
+            title.textContent = work.title_en;
+            
+            title.onclick = () => {
+                window.showNovelDetail(work.id, work.status);
+                window.scrollToTop();
+            };
+
+            item.appendChild(imgWrapper);
+            item.appendChild(title);
+            container.appendChild(item);
+        });
+
+    } catch (error) {
+        console.error("Error loading other works:", error);
+        container.innerHTML = '<div class="p-2 text-red-400 text-sm">ไม่สามารถโหลดข้อมูลได้</div>';
+    }
+}
+
+// --- Helper for Check User Like ---
+async function checkUserLikeStatus(novelId, totalLikes) {
+    const likeBtn = document.getElementById('detail-like-btn');
+    const likeIcon = likeBtn.querySelector('i') || likeBtn.querySelector('svg');
+    
+    const likeText = likeBtn.querySelector('span');
+    if(likeText) likeText.textContent = `Like (${totalLikes})`;
+
+    if (!currentUser) {
+        likeBtn.disabled = false; 
+        likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors hover:bg-pink-200 cursor-pointer";
+        if(likeIcon) likeIcon.setAttribute('fill', 'none');
+        return;
+    }
+
+    try {
+        const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', novelId);
+        const docSnap = await getDoc(likeDocRef);
+        
+        likeBtn.disabled = false;
+        
+        if (docSnap.exists()) {
+            likeBtn.className = "mt-4 w-full bg-pink-600 text-white py-2 rounded-lg flex items-center justify-center space-x-2 shadow-md transition-transform transform active:scale-95";
+            if(likeIcon) likeIcon.setAttribute('fill', 'currentColor');
+            likeBtn.setAttribute('data-liked', 'true');
+        } else {
+            likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors";
+            if(likeIcon) likeIcon.setAttribute('fill', 'none');
+            likeBtn.setAttribute('data-liked', 'false');
+        }
+        if (window.lucide) window.lucide.createIcons();
+    } catch (error) {
+        console.error("Error checking like status", error);
+        likeBtn.disabled = false;
+    }
+}
+
+// --- Helper for Novel Details ---
+async function loadNovelDetails(novelId) {
+    if (!db || !novelId) return;
+    document.getElementById('detail-cover-img').src = 'https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading...';
+    document.getElementById('detail-title-en').textContent = 'กำลังโหลดชื่อเรื่อง...';
+    document.getElementById('detail-title-th').textContent = '...';
+    document.getElementById('detail-author').textContent = '...';
+    document.getElementById('detail-language').textContent = '...';
+    document.getElementById('detail-status').textContent = '...';
+    document.getElementById('detail-chapters-count').textContent = '...'; 
+    document.getElementById('detail-description').innerHTML = '<p>กำลังโหลดเรื่องย่อ...</p>';
+    document.getElementById('detail-categories').innerHTML = '<span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full animate-pulse">...</span>';
+    
+    const likeBtn = document.getElementById('detail-like-btn');
+    likeBtn.innerHTML = `<i data-lucide="heart"></i> <span>Like (...)</span>`;
+    likeBtn.disabled = true; 
+    likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors";
+    
+    try {
+        const docRef = doc(db, "novels", novelId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const novel = docSnap.data();
+            document.getElementById('detail-cover-img').src = novel.coverImageUrl;
+            document.getElementById('detail-title-en').textContent = novel.title_en;
+            document.getElementById('detail-title-th').textContent = novel.title_th || ''; 
+            document.getElementById('detail-author').textContent = novel.author;
+            document.getElementById('detail-language').textContent = novel.language.toUpperCase();
+            document.getElementById('detail-status').textContent = novel.status;
+            document.getElementById('detail-description').innerHTML = novel.description;
+            
+            const categoriesContainer = document.getElementById('detail-categories');
+            categoriesContainer.innerHTML = '';
+            if (novel.categories && novel.categories.length > 0) {
+                novel.categories.forEach(cat => {
+                    const span = document.createElement('span');
+                    span.className = "bg-purple-100 text-purple-700 text-sm px-3 py-1 rounded-full";
+                    span.textContent = cat;
+                    categoriesContainer.appendChild(span);
+                });
+            } else {
+                categoriesContainer.innerHTML = '<span class="text-gray-400 text-sm">ไม่มีประเภท</span>';
+            }
+            
+            loadAuthorOtherWorks(novel.author, novelId);
+            checkUserLikeStatus(novelId, novel.totalLikes || 0);
+            
+            lucide.createIcons();
+        } else {
+            console.error("No such novel document!");
+            document.getElementById('detail-title-en').textContent = 'ไม่พบนิยายนี้';
+        }
+    } catch (error) {
+        console.error("Error getting novel details: ", error);
+        document.getElementById('detail-title-en').textContent = 'เกิดข้อผิดพลาด';
+    }
+}
+
+// --- Helper for Chapters ---
+function getChapterBadge(pointCost, type) {
+    if (pointCost === 0) return `<span class="text-sm font-medium px-2 py-1 rounded" style="color: #778899; border: 1px solid #778899;">อ่านฟรี</span>`;
+    if (pointCost === 5) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #00bfff; color: white;">${pointCost} Points</span>`;
+    if (pointCost === 10) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
+    if (type === 'Side') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #228b22; color: white;">${pointCost} Points</span>`;
+    if (type === 'Special') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff69b4; color: white;">${pointCost} Points</span>`;
+    if (type === 'Extra') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff7f50; color: white;">${pointCost} Points</span>`;
+    if (type === 'NC') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff3b3b; color: white;">${pointCost} Points</span>`;
+    return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
+}
+
+async function loadNovelChapters(novelId) {
+    if (!db || !novelId) return;
+    const chapterListContainer = document.getElementById('detail-chapter-list-container');
+    const chaptersCountEl = document.getElementById('detail-chapters-count');
+    
+    chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">กำลังโหลดสารบัญ...</div>';
+    chaptersCountEl.textContent = '...';
+    try {
+        const q = query(collection(db, "chapters"), where("novelId", "==", novelId));
+        const querySnapshot = await getDocs(q);
+        
+        let chapters = [];
+        querySnapshot.forEach((doc) => {
+            chapters.push({ id: doc.id, ...doc.data() });
+        });
+        chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+        
+        chaptersCountEl.textContent = `${chapters.length} ตอน`;
+        
+        chapterListContainer.innerHTML = '';
+        if (chapters.length === 0) {
+            chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">ยังไม่มีตอน...</div>';
+            return;
+        }
+        
+        chapters.forEach(chapter => {
+            const chapterId = chapter.id;
+            
+            const chapterEl = document.createElement('div');
+            chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer";
+            chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
+            
+            const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}</span>`;
+            const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type);
+            
+            chapterEl.innerHTML = titleSpan + badgeSpan;
+            chapterListContainer.appendChild(chapterEl);
+        });
+    } catch (error) {
+        console.error("Error loading chapters: ", error);
+        chapterListContainer.innerHTML = '<div class="p-3 text-red-500">ไม่สามารถโหลดสารบัญได้</div>';
+    }
+}
+
+async function loadAndShowNovelDetail(novelId) {
+    window.showPage('page-novel-detail');
+    await Promise.all([
+        loadNovelDetails(novelId),
+        loadNovelChapters(novelId)
+    ]);
+}
+
+// --- Helper for Reader ---
+async function loadChapterContent(chapterId) {
+    console.log(`Loading content for chapter ${chapterId}`);
+    const readerTitle = document.getElementById('reader-title');
+    const readerChapterTitle = document.getElementById('reader-chapter-title');
+    const readerContentDiv = document.getElementById('reader-content-div');
+    
+    const currentNovel = novelCache.find(n => n.id === currentOpenNovelId);
+    readerTitle.textContent = currentNovel ? currentNovel.title_en : 'กำลังโหลด...';
+    readerChapterTitle.textContent = '...';
+    readerContentDiv.innerHTML = '<p>กำลังโหลดเนื้อหา...</p>';
+    
+    window.showPage('page-reader');
+    try {
+        const chapterDocRef = doc(db, 'chapters', chapterId);
+        const docSnap = await getDoc(chapterDocRef);
+        
+        if (docSnap.exists()) {
+            const chapter = docSnap.data();
+            readerChapterTitle.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+            readerContentDiv.innerHTML = chapter.content;
+            currentOpenChapterTitle = chapter.title; 
+            
+            loadComments(chapterId);
+        } else {
+            readerChapterTitle.textContent = 'ไม่พบเนื้อหา';
+            readerContentDiv.innerHTML = '<p>ขออภัย, ไม่พบเนื้อหาของตอนนี้</p>';
+        }
+    } catch (error) {
+        console.error("Error loading chapter content:", error);
+        readerChapterTitle.textContent = 'เกิดข้อผิดพลาด';
+        readerContentDiv.innerHTML = '<p>ไม่สามารถโหลดเนื้อหาได้</p>';
+    }
+}
+
+async function loadComments(chapterId) {
+    const container = document.getElementById('reader-comment-container');
+    if (!db || !container) return;
+    
+    container.innerHTML = '<p class="text-gray-500 p-3">กำลังโหลดคอมเมนต์...</p>';
+    try {
+        const q = query(collection(db, "comments"), where("chapterId", "==", chapterId));
+        const querySnapshot = await getDocs(q);
+        
+        let comments = [];
+        querySnapshot.forEach((doc) => {
+            comments.push({ id: doc.id, ...doc.data() });
+        });
+        comments.sort((a, b) => a.createdAt - b.createdAt);
+        
+        container.innerHTML = ''; 
+        
+        if (comments.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 p-3">ยังไม่มีคอมเมนต์...</p>';
+            return;
+        }
+        
+        comments.forEach(comment => {
+            if (comment.parentCommentId) return; 
+            
+            const profileImg = "https://placehold.co/40x40/A5B4FC/FFFFFF?text=C";
+            
+            const commentEl = document.createElement('div');
+            commentEl.className = 'flex space-x-3';
+            commentEl.innerHTML = `
+                <img src="${profileImg}" class="rounded-full w-10 h-10">
+                <div class="flex-1">
+                    <div class="bg-gray-100 p-3 rounded-lg">
+                        <span class="font-semibold">${comment.username}</span>
+                        <p>${comment.message.replace(/\n/g, '<br>')}</p>
+                    </div>
+                    <div class="flex space-x-3 text-sm text-gray-500 mt-1">
+                        <span>Like (${comment.totalLikes})</span>
+                        <span>Reply</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(commentEl);
+        });
+        
+    } catch (error) {
+        console.error("Error loading comments:", error);
+        container.innerHTML = '<p class="text-red-500 p-3">ไม่สามารถโหลดคอมเมนต์ได้</p>';
+    }
+}
+
+// ============================================================
+//  WINDOW FUNCTIONS (ฟังก์ชันที่ HTML เรียกใช้ผ่าน onclick)
+// ============================================================
 
 // --- Page Navigation ---
 window.showPage = function(pageId) {
@@ -57,23 +604,22 @@ window.showPage = function(pageId) {
     }
     
     if (pageId === 'page-admin-add-novel') {
-        loadNovelsForDropdown('edit-novel-select');
+        loadNovelsForDropdown('edit-novel-select'); // เรียกใช้ได้แล้ว!
         window.setAdminNovelMode('add'); 
     }
     if (pageId === 'page-admin-add-chapter') {
-        loadNovelsForDropdown('chapter-novel-select');
+        loadNovelsForDropdown('chapter-novel-select'); // เรียกใช้ได้แล้ว!
         loadNovelsForDropdown('edit-chapter-novel-select');
         window.setAdminChapterMode('add'); 
     }
     if (pageId === 'page-admin-notifications') {
-        loadAdminNotifications();
+        loadAdminNotifications(); // เรียกใช้ได้แล้ว!
     }
     
     // Scroll to top
     if (window.scrollToTop) window.scrollToTop();
 }
 
-// --- Rich Text Editor Function ---
 window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = null) {
     const editor = document.getElementById(editorId);
     if (editor) {
@@ -84,7 +630,6 @@ window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = 
     }
 }
 
-// --- Admin Mode Setters ---
 window.setAdminNovelMode = function(mode) {
     const form = document.getElementById('add-novel-form');
     const title = document.getElementById('admin-novel-form-title');
@@ -131,7 +676,201 @@ window.setAdminChapterMode = function(mode) {
     }
 }
 
-// --- Run everything after the window is fully loaded ---
+window.openImageModal = function(src) {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('image-modal-content');
+    if(modal && modalImg) {
+        modalImg.src = src;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
+
+window.closeImageModal = function() {
+    const modal = document.getElementById('image-modal');
+    if(modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+window.showReaderPage = function(chapterId, pointCost) {
+    console.log(`Attempting to read chapter ${chapterId} with cost ${pointCost}`);
+    currentOpenChapterId = chapterId;
+    
+    if (!currentUser || !currentUserData) {
+        Swal.fire({
+            icon: 'info',
+            title: 'กรุณาเข้าสู่ระบบ',
+            text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะอ่านได้',
+            confirmButtonColor: '#8B5CF6',
+            confirmButtonText: 'ไปหน้า Login'
+        }).then(() => {
+            window.showPage('page-login');
+        });
+        return;
+    }
+    
+    if (pointCost === 0) {
+        loadChapterContent(chapterId);
+    } else {
+        window.showPointAlert(chapterId, pointCost);
+    }
+}
+
+window.showPointAlert = function(chapterId, pointCost) {
+    if (currentUserData.balancePoints < pointCost) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Points ไม่เพียงพอ!',
+            text: `คุณมี ${currentUserData.balancePoints} Points, แต่ตอนนี้ต้องใช้ ${pointCost} Points`,
+            confirmButtonColor: '#8B5CF6',
+            confirmButtonText: 'ไปหน้าเติมคะแนน'
+        }).then(() => {
+            window.showPage('page-add-point');
+        });
+        return; 
+    }
+    
+    Swal.fire({
+        title: `ยืนยันการอ่าน`,
+        text: `ตอนนี้ต้องใช้ ${pointCost} Points. คุณมี ${currentUserData.balancePoints} Points`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#8B5CF6',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: `อ่านต่อ (หัก ${pointCost} Points)`,
+        cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const newPoints = currentUserData.balancePoints - pointCost;
+                const userDocRef = doc(db, 'users', currentUser.uid);
+                
+                await updateDoc(userDocRef, {
+                    balancePoints: newPoints
+                });
+                
+                currentUserData.balancePoints = newPoints;
+                userPoints.textContent = `${newPoints} Points`;
+                
+                Swal.fire(
+                    'หัก Point สำเร็จ!',
+                    `ระบบหัก ${pointCost} Points. คุณมี ${newPoints} Points`,
+                    'success'
+                );
+                loadChapterContent(chapterId);
+                
+            } catch (error) {
+                console.error("Error updating points: ", error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถหัก Point ได้', 'error');
+            }
+        }
+    });
+}
+
+window.toggleNovelLike = async function() {
+    if (!currentUser) {
+        Swal.fire({
+            icon: 'info',
+            title: 'กรุณาเข้าสู่ระบบ',
+            text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะกด Like ได้',
+            confirmButtonColor: '#8B5CF6',
+            confirmButtonText: 'ไปหน้า Login'
+        }).then(() => window.showPage('page-login'));
+        return;
+    }
+    
+    if (!currentOpenNovelId) return;
+    
+    const likeBtn = document.getElementById('detail-like-btn');
+    likeBtn.disabled = true;
+    
+    const novelDocRef = doc(db, 'novels', currentOpenNovelId);
+    const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', currentOpenNovelId);
+    
+    try {
+        const isLiked = likeBtn.getAttribute('data-liked') === 'true';
+
+        if (isLiked) {
+            await deleteDoc(likeDocRef);
+            await updateDoc(novelDocRef, {
+                totalLikes: increment(-1) 
+            });
+        } else {
+            await setDoc(likeDocRef, { likedAt: Timestamp.now() });
+            await updateDoc(novelDocRef, {
+                totalLikes: increment(1)
+            });
+        }
+
+        const novelSnap = await getDoc(novelDocRef);
+        checkUserLikeStatus(currentOpenNovelId, novelSnap.data().totalLikes);
+        
+    } catch (error) {
+        console.error("Error toggling like:", error);
+        if (error.code === 'permission-denied') {
+            Swal.fire('Permission Error', 'กรุณาตรวจสอบ Firestore Rules ใน Console', 'error');
+        } else {
+            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+        }
+        likeBtn.disabled = false;
+    }
+}
+
+window.markCommentAsRead = async function(commentId) {
+    if (!db) return;
+    try {
+        const commentDocRef = doc(db, 'comments', commentId);
+        await updateDoc(commentDocRef, {
+            isReadByAdmin: true
+        });
+        document.getElementById(`comment-card-${commentId}`).style.display = 'none';
+        checkAdminNotifications();
+        
+    } catch (error) {
+        console.error("Error marking comment as read:", error);
+        Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+    }
+}
+
+window.showNovelDetail = function(novelId, status) { 
+    currentOpenNovelId = novelId;
+    console.log(`Setting currentOpenNovelId: ${novelId}`);
+    
+    if (status === 'Other') {
+        Swal.fire({
+            title: 'นิยายเรื่องนี้ยังไม่ทราบตอนจบ',
+            text: 'คุณต้องการอ่านต่อหรือไม่?',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#8B5CF6',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'อ่านต่อ',
+            cancelButtonText: 'กลับหน้าหลัก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                loadAndShowNovelDetail(novelId);
+            }
+        });
+    } else {
+        loadAndShowNovelDetail(novelId);
+    }
+}
+
+window.logout = function() { 
+    signOut(auth).then(() => {
+        window.showPage('page-home');
+    }).catch((error) => {
+        console.error("Logout Error:", error);
+    });
+}
+
+// ============================================================
+//  WINDOW.ONLOAD (เริ่มทำงานเมื่อโหลดหน้าเสร็จ)
+// ============================================================
+
 window.onload = function() {
     
     // 1. Initialize Firebase
@@ -143,56 +882,19 @@ window.onload = function() {
     } catch (error) {
         console.error("Firebase initialization failed:", error);
         Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
-        return; // หยุดการทำงานถ้า Firebase พัง
+        return; 
     }
     
     // 2. Initialize Lucide Icons
     try {
         lucide.createIcons();
-        console.log("Lucide icons created!");
     } catch (error) {
         console.error("Lucide icon creation failed:", error);
     }
 
-    // --- Password Toggle ---
-    const regTogglePasswordBtn = document.getElementById('reg-toggle-password');
-    const regPasswordInput = document.getElementById('reg-password');
-    const regToggleIcon = document.getElementById('reg-toggle-icon');
-
-    if (regTogglePasswordBtn && regPasswordInput && regToggleIcon) {
-        regTogglePasswordBtn.addEventListener('click', () => {
-            if (regPasswordInput.type === 'password') {
-                regPasswordInput.type = 'text';
-                regToggleIcon.setAttribute('data-lucide', 'eye');
-            } else {
-                regPasswordInput.type = 'password';
-                regToggleIcon.setAttribute('data-lucide', 'eye-off');
-            }
-            lucide.createIcons();
-        });
-    }
-
-    const loginTogglePasswordBtn = document.getElementById('login-toggle-password');
-    const loginPasswordInput = document.getElementById('login-password');
-    const loginToggleIcon = document.getElementById('login-toggle-icon');
-
-    if (loginTogglePasswordBtn && loginPasswordInput && loginToggleIcon) {
-        loginTogglePasswordBtn.addEventListener('click', () => {
-            if (loginPasswordInput.type === 'password') {
-                loginPasswordInput.type = 'text';
-                loginToggleIcon.setAttribute('data-lucide', 'eye');
-            } else {
-                loginPasswordInput.type = 'password';
-                loginToggleIcon.setAttribute('data-lucide', 'eye-off');
-            }
-            lucide.createIcons();
-        });
-    }
-
-    // --- Auth State Management ---
+    // 3. Auth State Listener
     const loggedOutView = document.getElementById('auth-logged-out');
     const loggedInView = document.getElementById('auth-logged-in');
-    
     const userUsername = document.getElementById('user-username');
     const userPoints = document.getElementById('user-points');
     const adminNotifyBtn = document.getElementById('admin-notify-btn');
@@ -203,7 +905,6 @@ window.onload = function() {
 
     onAuthStateChanged(auth, user => {
         if (user) {
-            // User is LOGGED IN
             currentUser = user; 
             const userDocRef = doc(db, 'users', user.uid);
             
@@ -246,7 +947,6 @@ window.onload = function() {
                     window.logout(); 
                 });
         } else {
-            // User is LOGGED OUT
             currentUser = null;
             currentUserData = null;
             
@@ -266,192 +966,16 @@ window.onload = function() {
             if (readerCommentUsername) readerCommentUsername.textContent = '...';
             if (commentInputBox) commentInputBox.style.display = 'none';
             
-            loadNovels(); // Load novels anyway
+            loadNovels();
         }
     });
 
-    // --- Auth Functions ---
-    const registerForm = document.getElementById('register-form');
-    registerForm.addEventListener('submit', (e) => {
-        e.preventDefault(); 
-        
-        const username = document.getElementById('reg-username').value;
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-password').value;
-        
-        createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                const user = userCredential.user;
-                const userDocRef = doc(db, 'users', user.uid);
-                
-                return setDoc(userDocRef, {
-                    username: username,
-                    email: email,
-                    balancePoints: 0,
-                    role: 'user', 
-                    createdAt: Timestamp.now(),
-                    likedNovels: [] 
-                });
-            })
-            .then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'ลงทะเบียนสำเร็จ!',
-                    text: `ยินดีต้อนรับ ${username}!`,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                window.showPage('page-home'); 
-            })
-            .catch((error) => {
-                console.error("Register Error:", error);
-                let errorMsg = "เกิดข้อผิดพลาด";
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMsg = 'อีเมลนี้ถูกใช้งานแล้ว';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMsg = 'รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวอักษรขึ้นไป)';
-                }
-                Swal.fire('ลงทะเบียนไม่สำเร็จ', errorMsg, 'error');
-            });
-    });
-
-    const loginForm = document.getElementById('login-form');
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        
-        signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                window.showPage('page-home'); 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'เข้าสู่ระบบสำเร็จ!',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 2000
-                });
-            })
-            .catch((error) => {
-                console.error("Login Error:", error);
-                Swal.fire('เข้าสู่ระบบไม่สำเร็จ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'error');
-            });
-    });
-
-    window.logout = function() { 
-        signOut(auth).then(() => {
-            window.showPage('page-home');
-        }).catch((error) => {
-            console.error("Logout Error:", error);
-        });
-    }
-
-    // --- Admin Functions ---
+    // 4. Event Listeners for Forms
     
-    async function loadNovelsForDropdown(elementId) {
-        const selectEl = document.getElementById(elementId);
-        const authorDatalist = document.getElementById('author-datalist'); 
-        
-        if (!db || !selectEl) return;
-        
-        // Helper to update author list
-        const updateAuthorList = (novels) => {
-            if (!authorDatalist) return;
-            const authors = new Set();
-            novels.forEach(n => {
-                if (n.author) authors.add(n.author.trim());
-            });
-            
-            authorDatalist.innerHTML = '';
-            authors.forEach(author => {
-                const option = document.createElement('option');
-                option.value = author;
-                authorDatalist.appendChild(option);
-            });
-        };
-
-        if (novelCache.length > 0) {
-            selectEl.innerHTML = `<option value="">เลือกนิยาย (${novelCache.length} เรื่อง)</option>`;
-            novelCache.forEach(novel => {
-                const option = document.createElement('option');
-                option.value = novel.id;
-                option.textContent = `${novel.title_en} (${novel.language})`;
-                selectEl.appendChild(option);
-            });
-            updateAuthorList(novelCache); 
-            return;
-        }
-        
-        selectEl.innerHTML = '<option value="">กำลังโหลดนิยาย...</option>';
-        try {
-            const querySnapshot = await getDocs(collection(db, "novels"));
-            novelCache = []; 
-            selectEl.innerHTML = `<option value="">เลือกนิยาย (${querySnapshot.size} เรื่อง)</option>`;
-            
-            querySnapshot.forEach((doc) => {
-                const novel = doc.data();
-                novel.id = doc.id;
-                novelCache.push(novel); 
-                
-                const option = document.createElement('option');
-                option.value = novel.id;
-                option.textContent = `${novel.title_en} (${novel.language.toUpperCase()})`;
-                selectEl.appendChild(option);
-            });
-            updateAuthorList(novelCache);
-        } catch (error) {
-            console.error("Error loading novels for dropdown:", error);
-            selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
-        }
-    }
-
-    async function loadNovelForEditing() {
-        const novelId = document.getElementById('edit-novel-select').value;
-        if (!novelId) {
-            Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกนิยายก่อน', 'warning');
-            return;
-        }
-        
-        try {
-            const docRef = doc(db, "novels", novelId);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const novel = docSnap.data();
-                document.getElementById('novel-cover-url').value = novel.coverImageUrl || '';
-                document.getElementById('novel-title-en').value = novel.title_en || '';
-                document.getElementById('novel-title-th').value = novel.title_th || '';
-                document.getElementById('novel-title-original').value = novel.title_original || '';
-                document.getElementById('novel-author').value = novel.author || '';
-                document.getElementById('novel-language').value = novel.language || '';
-                document.getElementById('novel-status').value = novel.status || '';
-                document.getElementById('novel-licensed').checked = novel.isLicensed || false;
-                document.getElementById('novel-description-editor').innerHTML = novel.description || '';
-                
-                document.querySelectorAll('.novel-category-check').forEach(cb => cb.checked = false);
-                if (novel.categories && novel.categories.length > 0) {
-                    novel.categories.forEach(catName => {
-                        const checkboxToCheck = document.querySelector(`.novel-category-check[value="${catName}"]`);
-                        if (checkboxToCheck) checkboxToCheck.checked = true;
-                    });
-                }
-                
-                currentEditingNovelId = novelId;
-                window.setAdminNovelMode('edit');
-                
-                Swal.fire('โหลดสำเร็จ', `กำลังแก้ไข "${novel.title_en}"`, 'success');
-                
-            } else {
-                Swal.fire('ไม่พบข้อมูล', 'ไม่พบนิยายนี้ในฐานข้อมูล', 'error');
-            }
-        } catch (error) {
-            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-        }
-    }
+    // Admin: Edit Novel - Load Button
     document.getElementById('load-novel-to-edit-btn').addEventListener('click', loadNovelForEditing);
     
+    // Admin: Edit Novel - Save/Update Form
     document.getElementById('add-novel-form').addEventListener('submit', async (e) => { 
         e.preventDefault(); 
         
@@ -472,7 +996,6 @@ window.onload = function() {
         };
         try {
             if (currentEditingNovelId) {
-                // --- โหมด Update ---
                 const novelDocRef = doc(db, 'novels', currentEditingNovelId);
                 await updateDoc(novelDocRef, novelData);
                 
@@ -480,7 +1003,6 @@ window.onload = function() {
                 loadNovels(); 
                 window.setAdminNovelMode('add');
             } else {
-                // --- โหมด Add ---
                 novelData.totalLikes = 0;
                 novelData.createdAt = Timestamp.now();
                 novelData.lastChapterUpdatedAt = Timestamp.now();
@@ -495,9 +1017,8 @@ window.onload = function() {
             Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
         }
     });
-    
-    // --- Admin: Chapter (Add/Edit) ---
 
+    // Admin: Edit Chapter - Select Logic
     async function loadChaptersForEditDropdown(novelId) {
         const selectEl = document.getElementById('edit-chapter-select');
         const loadBtn = document.getElementById('load-chapter-to-edit-btn');
@@ -546,6 +1067,7 @@ window.onload = function() {
         loadChaptersForEditDropdown(e.target.value);
     });
 
+    // Admin: Edit Chapter - Load Button
     async function loadChapterForEditing() {
         const chapterId = document.getElementById('edit-chapter-select').value;
         if (!chapterId) {
@@ -592,6 +1114,7 @@ window.onload = function() {
     }
     document.getElementById('load-chapter-to-edit-btn').addEventListener('click', loadChapterForEditing);
 
+    // Admin: Edit Chapter - Save/Update Form
     document.getElementById('add-chapter-form').addEventListener('submit', async (e) => { 
         e.preventDefault();
         
@@ -631,7 +1154,6 @@ window.onload = function() {
         const parentNovelRef = doc(db, 'novels', chapterData.novelId);
         try {
             if (currentEditingChapterId) {
-                // --- โหมด Update ---
                 const chapterDocRef = doc(db, 'chapters', currentEditingChapterId);
                 await updateDoc(chapterDocRef, chapterData);
                 await updateDoc(parentNovelRef, {
@@ -641,7 +1163,6 @@ window.onload = function() {
                 window.setAdminChapterMode('add'); 
                 
             } else {
-                // --- โหมด Add ---
                 chapterData.createdAt = Timestamp.now();
                 await addDoc(collection(db, 'chapters'), chapterData);
                 await updateDoc(parentNovelRef, {
@@ -656,660 +1177,8 @@ window.onload = function() {
              Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
         }
     });
-    
-    // --- Load Novels (Main Feed) ---
-    async function loadNovels() {
-        if (!db) return;
-        const containers = {
-            'KR': document.getElementById('novel-container-kr'),
-            'CN': document.getElementById('novel-container-cn'),
-            'EN': document.getElementById('novel-container-en'),
-            'JP': document.getElementById('novel-container-jp')
-        };
-        ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-            containers[lang].innerHTML = ''; 
-            const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-            if (loadingText) loadingText.style.display = 'block'; 
-        });
-        const homeUpdatesContainer = document.getElementById('home-latest-updates');
-        homeUpdatesContainer.innerHTML = ''; // ล้างหน้า Home
-        
-        try {
-            const querySnapshot = await getDocs(collection(db, "novels"));
-            novelCache = []; 
-            let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
-            const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-            
-            let allNovels = [];
-            querySnapshot.forEach((doc) => {
-                allNovels.push({ id: doc.id, ...doc.data() });
-            });
-            allNovels.sort((a, b) => {
-                const timeA = a.lastChapterUpdatedAt ? a.lastChapterUpdatedAt.toDate().getTime() : 0;
-                const timeB = b.lastChapterUpdatedAt ? b.lastChapterUpdatedAt.toDate().getTime() : 0;
-                return timeB - timeA;
-            });
-            allNovels.forEach(novel => {
-                const novelId = novel.id;
-                novelCache.push(novel); 
-                
-                const lang = novel.language.toUpperCase(); 
-                
-                if (containers[lang]) {
-                    novelCount[lang]++;
-                    
-                    const card = document.createElement('div');
-                    card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
-                    card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
-                    
-                    let licensedBadge = '';
-                    if (novel.isLicensed) {
-                        licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
-                    }
-                    
-                    let newBadge = '';
-                    let isNew = false;
-                    if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > threeDaysAgo) {
-                        newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
-                        isNew = true;
-                    }
-                    
-                    card.innerHTML = `
-                        <div class="relative">
-                            <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
-                            ${licensedBadge}
-                            ${newBadge}
-                        </div>
-                        <div class="p-3">
-                            <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
-                        </div>
-                    `;
-                    containers[lang].appendChild(card);
-                    
-                    if (isNew && homeUpdatesContainer.childElementCount < 5) {
-                         const homeCard = document.createElement('div');
-                         homeCard.className = "flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer";
-                         homeCard.onclick = () => window.showNovelDetail(novelId, novel.status);
-                         homeCard.innerHTML = `
-                            <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-12 h-16 object-cover rounded">
-                            <div>
-                                <h5 class="font-semibold text-purple-700">${novel.title_en}</h5>
-                                <p class="text-sm text-gray-500">${novel.author}</p>
-                            </div>
-                         `;
-                         homeUpdatesContainer.appendChild(homeCard);
-                    }
-                }
-            });
-            ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-                const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-                if (loadingText) loadingText.style.display = 'none'; 
-                
-                if (novelCount[lang] === 0) {
-                    containers[lang].innerHTML = '<p class="text-gray-500 col-span-full">ยังไม่มีนิยายในหมวดนี้...</p>';
-                }
-            });
-            if (homeUpdatesContainer.childElementCount === 0) {
-                homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>';
-            }
 
-        } catch (error) {
-            console.error("Error loading novels: ", error);
-            ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-                containers[lang].innerHTML = '<p class="text-red-500 col-span-full">ไม่สามารถโหลดนิยายได้</p>';
-                const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-                if (loadingText) loadingText.style.display = 'none';
-            });
-        }
-    }
-
-    // --- Load Novel Details ---
-    
-    function getChapterBadge(pointCost, type) {
-        if (pointCost === 0) return `<span class="text-sm font-medium px-2 py-1 rounded" style="color: #778899; border: 1px solid #778899;">อ่านฟรี</span>`;
-        if (pointCost === 5) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #00bfff; color: white;">${pointCost} Points</span>`;
-        if (pointCost === 10) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
-        if (type === 'Side') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #228b22; color: white;">${pointCost} Points</span>`;
-        if (type === 'Special') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff69b4; color: white;">${pointCost} Points</span>`;
-        if (type === 'Extra') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff7f50; color: white;">${pointCost} Points</span>`;
-        if (type === 'NC') return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #ff3b3b; color: white;">${pointCost} Points</span>`;
-        return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
-    }
-
-    async function loadNovelDetails(novelId) {
-        if (!db || !novelId) return;
-        document.getElementById('detail-cover-img').src = 'https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading...';
-        document.getElementById('detail-title-en').textContent = 'กำลังโหลดชื่อเรื่อง...';
-        document.getElementById('detail-title-th').textContent = '...';
-        document.getElementById('detail-author').textContent = '...';
-        document.getElementById('detail-language').textContent = '...';
-        document.getElementById('detail-status').textContent = '...';
-        document.getElementById('detail-chapters-count').textContent = '...'; 
-        document.getElementById('detail-description').innerHTML = '<p>กำลังโหลดเรื่องย่อ...</p>';
-        document.getElementById('detail-categories').innerHTML = '<span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full animate-pulse">...</span>';
-        
-        const likeBtn = document.getElementById('detail-like-btn');
-        likeBtn.innerHTML = `<i data-lucide="heart"></i> <span>Like (...)</span>`;
-        likeBtn.disabled = true; 
-        likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors";
-        
-        try {
-            const docRef = doc(db, "novels", novelId);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const novel = docSnap.data();
-                document.getElementById('detail-cover-img').src = novel.coverImageUrl;
-                document.getElementById('detail-title-en').textContent = novel.title_en;
-                document.getElementById('detail-title-th').textContent = novel.title_th || ''; 
-                document.getElementById('detail-author').textContent = novel.author;
-                document.getElementById('detail-language').textContent = novel.language.toUpperCase();
-                document.getElementById('detail-status').textContent = novel.status;
-                document.getElementById('detail-description').innerHTML = novel.description;
-                
-                const categoriesContainer = document.getElementById('detail-categories');
-                categoriesContainer.innerHTML = '';
-                if (novel.categories && novel.categories.length > 0) {
-                    novel.categories.forEach(cat => {
-                        const span = document.createElement('span');
-                        span.className = "bg-purple-100 text-purple-700 text-sm px-3 py-1 rounded-full";
-                        span.textContent = cat;
-                        categoriesContainer.appendChild(span);
-                    });
-                } else {
-                    categoriesContainer.innerHTML = '<span class="text-gray-400 text-sm">ไม่มีประเภท</span>';
-                }
-                
-                // **** Load Other Works ****
-                loadAuthorOtherWorks(novel.author, novelId);
-                
-                // **** Check Like Status ****
-                checkUserLikeStatus(novelId, novel.totalLikes || 0);
-                
-                lucide.createIcons();
-            } else {
-                console.error("No such novel document!");
-                document.getElementById('detail-title-en').textContent = 'ไม่พบนิยายนี้';
-            }
-        } catch (error) {
-            console.error("Error getting novel details: ", error);
-            document.getElementById('detail-title-en').textContent = 'เกิดข้อผิดพลาด';
-        }
-    }
-
-    // --- Like Functions (Fixed) ---
-    async function checkUserLikeStatus(novelId, totalLikes) {
-        const likeBtn = document.getElementById('detail-like-btn');
-        const likeIcon = likeBtn.querySelector('i') || likeBtn.querySelector('svg');
-        
-        const likeText = likeBtn.querySelector('span');
-        if(likeText) likeText.textContent = `Like (${totalLikes})`;
-
-        if (!currentUser) {
-            likeBtn.disabled = false; 
-            likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors hover:bg-pink-200 cursor-pointer";
-            if(likeIcon) likeIcon.setAttribute('fill', 'none');
-            return;
-        }
-
-        try {
-            const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', novelId);
-            const docSnap = await getDoc(likeDocRef);
-            
-            likeBtn.disabled = false;
-            
-            if (docSnap.exists()) {
-                likeBtn.className = "mt-4 w-full bg-pink-600 text-white py-2 rounded-lg flex items-center justify-center space-x-2 shadow-md transition-transform transform active:scale-95";
-                if(likeIcon) likeIcon.setAttribute('fill', 'currentColor');
-                likeBtn.setAttribute('data-liked', 'true');
-            } else {
-                likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors";
-                if(likeIcon) likeIcon.setAttribute('fill', 'none');
-                likeBtn.setAttribute('data-liked', 'false');
-            }
-            if (window.lucide) window.lucide.createIcons();
-        } catch (error) {
-            console.error("Error checking like status", error);
-            likeBtn.disabled = false;
-        }
-    }
-
-    window.toggleNovelLike = async function() {
-        if (!currentUser) {
-            Swal.fire({
-                icon: 'info',
-                title: 'กรุณาเข้าสู่ระบบ',
-                text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะกด Like ได้',
-                confirmButtonColor: '#8B5CF6',
-                confirmButtonText: 'ไปหน้า Login'
-            }).then(() => window.showPage('page-login'));
-            return;
-        }
-        
-        if (!currentOpenNovelId) return;
-        
-        const likeBtn = document.getElementById('detail-like-btn');
-        likeBtn.disabled = true;
-        
-        const novelDocRef = doc(db, 'novels', currentOpenNovelId);
-        const likeDocRef = doc(db, 'users', currentUser.uid, 'likedNovels', currentOpenNovelId);
-        
-        try {
-            const isLiked = likeBtn.getAttribute('data-liked') === 'true';
-
-            if (isLiked) {
-                await deleteDoc(likeDocRef);
-                await updateDoc(novelDocRef, {
-                    totalLikes: increment(-1) 
-                });
-            } else {
-                await setDoc(likeDocRef, { likedAt: Timestamp.now() });
-                await updateDoc(novelDocRef, {
-                    totalLikes: increment(1)
-                });
-            }
-
-            const novelSnap = await getDoc(novelDocRef);
-            checkUserLikeStatus(currentOpenNovelId, novelSnap.data().totalLikes);
-            
-        } catch (error) {
-            console.error("Error toggling like:", error);
-            if (error.code === 'permission-denied') {
-                Swal.fire('Permission Error', 'กรุณาตรวจสอบ Firestore Rules ใน Console', 'error');
-            } else {
-                Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-            }
-            likeBtn.disabled = false;
-        }
-    }
-    
-    // --- Author Other Works Logic ---
-    async function loadAuthorOtherWorks(authorName, currentId) {
-        const container = document.getElementById('detail-other-works');
-        if(!container) return;
-        
-        container.innerHTML = '<div class="p-2 text-gray-400 text-sm animate-pulse">กำลังค้นหาผลงานอื่น...</div>';
-        
-        try {
-            const q = query(collection(db, "novels"), where("author", "==", authorName));
-            const querySnapshot = await getDocs(q);
-            
-            const otherWorks = [];
-            querySnapshot.forEach((doc) => {
-                if (doc.id !== currentId) {
-                    otherWorks.push({ id: doc.id, ...doc.data() });
-                }
-            });
-
-            container.innerHTML = '';
-
-            if (otherWorks.length === 0) {
-                container.innerHTML = '<div class="p-2 text-gray-400 text-sm">ไม่มีผลงานอื่นๆ ของผู้แต่งท่านนี้</div>';
-                return;
-            }
-
-            otherWorks.forEach(work => {
-                const item = document.createElement('div');
-                item.className = "flex-shrink-0 w-28 flex flex-col items-center space-y-2 group";
-                
-                const imgWrapper = document.createElement('div');
-                imgWrapper.className = "relative overflow-hidden rounded-md shadow-md w-full h-40 cursor-zoom-in";
-                
-                const img = document.createElement('img');
-                img.src = work.coverImageUrl || 'https://placehold.co/100x150';
-                img.className = "w-full h-full object-cover transition-transform duration-300 group-hover:scale-110";
-                img.alt = work.title_en;
-                
-                imgWrapper.onclick = (e) => {
-                    e.stopPropagation(); 
-                    window.openImageModal(work.coverImageUrl);
-                };
-
-                imgWrapper.appendChild(img);
-
-                const title = document.createElement('span');
-                title.className = "text-xs text-center font-medium text-gray-600 line-clamp-2 group-hover:text-purple-600 cursor-pointer transition-colors";
-                title.textContent = work.title_en;
-                
-                title.onclick = () => {
-                    window.showNovelDetail(work.id, work.status);
-                    window.scrollToTop();
-                };
-
-                item.appendChild(imgWrapper);
-                item.appendChild(title);
-                container.appendChild(item);
-            });
-
-        } catch (error) {
-            console.error("Error loading other works:", error);
-            container.innerHTML = '<div class="p-2 text-red-400 text-sm">ไม่สามารถโหลดข้อมูลได้</div>';
-        }
-    }
-    
-    // --- Image Modal Logic ---
-    window.openImageModal = function(src) {
-        const modal = document.getElementById('image-modal');
-        const modalImg = document.getElementById('image-modal-content');
-        if(modal && modalImg) {
-            modalImg.src = src;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            if (window.lucide) window.lucide.createIcons();
-        }
-    }
-    
-    window.closeImageModal = function() {
-        const modal = document.getElementById('image-modal');
-        if(modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    }
-
-    async function loadNovelChapters(novelId) {
-        if (!db || !novelId) return;
-        const chapterListContainer = document.getElementById('detail-chapter-list-container');
-        const chaptersCountEl = document.getElementById('detail-chapters-count');
-        
-        chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">กำลังโหลดสารบัญ...</div>';
-        chaptersCountEl.textContent = '...';
-        try {
-            const q = query(collection(db, "chapters"), where("novelId", "==", novelId));
-            const querySnapshot = await getDocs(q);
-            
-            let chapters = [];
-            querySnapshot.forEach((doc) => {
-                chapters.push({ id: doc.id, ...doc.data() });
-            });
-            chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-            
-            chaptersCountEl.textContent = `${chapters.length} ตอน`;
-            
-            chapterListContainer.innerHTML = '';
-            if (chapters.length === 0) {
-                chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">ยังไม่มีตอน...</div>';
-                return;
-            }
-            
-            chapters.forEach(chapter => {
-                const chapterId = chapter.id;
-                
-                const chapterEl = document.createElement('div');
-                chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer";
-                chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
-                
-                const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}</span>`;
-                const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type);
-                
-                chapterEl.innerHTML = titleSpan + badgeSpan;
-                chapterListContainer.appendChild(chapterEl);
-            });
-        } catch (error) {
-            console.error("Error loading chapters: ", error);
-            chapterListContainer.innerHTML = '<div class="p-3 text-red-500">ไม่สามารถโหลดสารบัญได้</div>';
-        }
-    }
-
-    async function loadAndShowNovelDetail(novelId) {
-        window.showPage('page-novel-detail');
-        await Promise.all([
-            loadNovelDetails(novelId),
-            loadNovelChapters(novelId)
-        ]);
-    }
-    
-    // --- Reader Functions ---
-    
-    async function loadChapterContent(chapterId) {
-        console.log(`Loading content for chapter ${chapterId}`);
-        const readerTitle = document.getElementById('reader-title');
-        const readerChapterTitle = document.getElementById('reader-chapter-title');
-        const readerContentDiv = document.getElementById('reader-content-div');
-        
-        const currentNovel = novelCache.find(n => n.id === currentOpenNovelId);
-        readerTitle.textContent = currentNovel ? currentNovel.title_en : 'กำลังโหลด...';
-        readerChapterTitle.textContent = '...';
-        readerContentDiv.innerHTML = '<p>กำลังโหลดเนื้อหา...</p>';
-        
-        window.showPage('page-reader');
-        try {
-            const chapterDocRef = doc(db, 'chapters', chapterId);
-            const docSnap = await getDoc(chapterDocRef);
-            
-            if (docSnap.exists()) {
-                const chapter = docSnap.data();
-                readerChapterTitle.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
-                readerContentDiv.innerHTML = chapter.content;
-                currentOpenChapterTitle = chapter.title; 
-                
-                loadComments(chapterId);
-            } else {
-                readerChapterTitle.textContent = 'ไม่พบเนื้อหา';
-                readerContentDiv.innerHTML = '<p>ขออภัย, ไม่พบเนื้อหาของตอนนี้</p>';
-            }
-        } catch (error) {
-            console.error("Error loading chapter content:", error);
-            readerChapterTitle.textContent = 'เกิดข้อผิดพลาด';
-            readerContentDiv.innerHTML = '<p>ไม่สามารถโหลดเนื้อหาได้</p>';
-        }
-    }
-
-    window.showPointAlert = function(chapterId, pointCost) {
-        if (currentUserData.balancePoints < pointCost) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Points ไม่เพียงพอ!',
-                text: `คุณมี ${currentUserData.balancePoints} Points, แต่ตอนนี้ต้องใช้ ${pointCost} Points`,
-                confirmButtonColor: '#8B5CF6',
-                confirmButtonText: 'ไปหน้าเติมคะแนน'
-            }).then(() => {
-                window.showPage('page-add-point');
-            });
-            return; 
-        }
-        
-        Swal.fire({
-            title: `ยืนยันการอ่าน`,
-            text: `ตอนนี้ต้องใช้ ${pointCost} Points. คุณมี ${currentUserData.balancePoints} Points`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#8B5CF6',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: `อ่านต่อ (หัก ${pointCost} Points)`,
-            cancelButtonText: 'ยกเลิก'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const newPoints = currentUserData.balancePoints - pointCost;
-                    const userDocRef = doc(db, 'users', currentUser.uid);
-                    
-                    await updateDoc(userDocRef, {
-                        balancePoints: newPoints
-                    });
-                    
-                    currentUserData.balancePoints = newPoints;
-                    userPoints.textContent = `${newPoints} Points`;
-                    
-                    Swal.fire(
-                        'หัก Point สำเร็จ!',
-                        `ระบบหัก ${pointCost} Points. คุณมี ${newPoints} Points`,
-                        'success'
-                    );
-                    loadChapterContent(chapterId);
-                    
-                } catch (error) {
-                    console.error("Error updating points: ", error);
-                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถหัก Point ได้', 'error');
-                }
-            }
-        });
-    }
-
-    window.showReaderPage = function(chapterId, pointCost) {
-        console.log(`Attempting to read chapter ${chapterId} with cost ${pointCost}`);
-        currentOpenChapterId = chapterId;
-        
-        if (!currentUser || !currentUserData) {
-            Swal.fire({
-                icon: 'info',
-                title: 'กรุณาเข้าสู่ระบบ',
-                text: 'คุณต้องเข้าสู่ระบบก่อนจึงจะอ่านได้',
-                confirmButtonColor: '#8B5CF6',
-                confirmButtonText: 'ไปหน้า Login'
-            }).then(() => {
-                window.showPage('page-login');
-            });
-            return;
-        }
-        
-        if (pointCost === 0) {
-            loadChapterContent(chapterId);
-        } else {
-            window.showPointAlert(chapterId, pointCost);
-        }
-    }
-    
-    // --- Comment Functions ---
-    
-    async function checkAdminNotifications() {
-        if (!db || !currentUserData || currentUserData.role !== 'admin') {
-            return;
-        }
-        
-        const badge = document.getElementById('admin-notify-badge');
-        try {
-            const q = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
-            const querySnapshot = await getDocs(q);
-            const unreadCount = querySnapshot.size;
-            
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        } catch (error) {
-            console.error("Error checking admin notifications:", error);
-        }
-    }
-    
-    async function loadAdminNotifications() {
-        const container = document.getElementById('admin-notify-container');
-        if (!db || !container) return;
-        
-        container.innerHTML = '<p class="text-gray-500 p-3">กำลังโหลดการแจ้งเตือน...</p>';
-        try {
-            const q = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
-            const querySnapshot = await getDocs(q);
-            
-            let unreadComments = [];
-            querySnapshot.forEach((doc) => {
-                unreadComments.push({ id: doc.id, ...doc.data() });
-            });
-            unreadComments.sort((a, b) => b.createdAt - a.createdAt);
-            
-            container.innerHTML = ''; 
-            
-            if (unreadComments.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 p-3">ไม่มีคอมเมนต์ที่ยังไม่อ่าน</p>';
-                return;
-            }
-            
-            unreadComments.forEach(comment => {
-                const novel = novelCache.find(n => n.id === comment.novelId);
-                const novelTitle = novel ? novel.title_en : 'นิยายที่ถูกลบไปแล้ว';
-            
-                const card = document.createElement('div');
-                card.id = `comment-card-${comment.id}`; 
-                card.className = "p-3 border rounded-lg bg-gray-50 space-y-2";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-semibold text-purple-700">${comment.username}</span>
-                        <span class="text-xs text-gray-500">${comment.createdAt.toDate().toLocaleString()}</span>
-                    </div>
-                    <p class="text-gray-600 text-sm">ใน: <strong>${novelTitle}</strong> / <i>${comment.chapterTitle || '...'}</i></p>
-                    <p class="p-2 bg-white border rounded-md">${comment.message.replace(/\n/g, '<br>')}</p>
-                    <button onclick="window.markCommentAsRead('${comment.id}')" class="text-sm text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-md">
-                        Mark as Read
-                    </button>
-                `;
-                container.appendChild(card);
-            });
-            
-        } catch (error) {
-            console.error("Error loading admin notifications:", error);
-            container.innerHTML = '<p class="text-red-500 p-3">ไม่สามารถโหลดการแจ้งเตือนได้</p>';
-        }
-    }
-    
-    window.markCommentAsRead = async function(commentId) {
-        if (!db) return;
-        try {
-            const commentDocRef = doc(db, 'comments', commentId);
-            await updateDoc(commentDocRef, {
-                isReadByAdmin: true
-            });
-            document.getElementById(`comment-card-${commentId}`).style.display = 'none';
-            checkAdminNotifications();
-            
-        } catch (error) {
-            console.error("Error marking comment as read:", error);
-            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-        }
-    }
-
-    async function loadComments(chapterId) {
-        const container = document.getElementById('reader-comment-container');
-        if (!db || !container) return;
-        
-        container.innerHTML = '<p class="text-gray-500 p-3">กำลังโหลดคอมเมนต์...</p>';
-        try {
-            const q = query(collection(db, "comments"), where("chapterId", "==", chapterId));
-            const querySnapshot = await getDocs(q);
-            
-            let comments = [];
-            querySnapshot.forEach((doc) => {
-                comments.push({ id: doc.id, ...doc.data() });
-            });
-            comments.sort((a, b) => a.createdAt - b.createdAt);
-            
-            container.innerHTML = ''; 
-            
-            if (comments.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 p-3">ยังไม่มีคอมเมนต์...</p>';
-                return;
-            }
-            
-            comments.forEach(comment => {
-                if (comment.parentCommentId) return; 
-                
-                const profileImg = "https://placehold.co/40x40/A5B4FC/FFFFFF?text=C";
-                
-                const commentEl = document.createElement('div');
-                commentEl.className = 'flex space-x-3';
-                commentEl.innerHTML = `
-                    <img src="${profileImg}" class="rounded-full w-10 h-10">
-                    <div class="flex-1">
-                        <div class="bg-gray-100 p-3 rounded-lg">
-                            <span class="font-semibold">${comment.username}</span>
-                            <p>${comment.message.replace(/\n/g, '<br>')}</p>
-                        </div>
-                        <div class="flex space-x-3 text-sm text-gray-500 mt-1">
-                            <span>Like (${comment.totalLikes})</span>
-                            <span>Reply</span>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(commentEl);
-            });
-            
-        } catch (error) {
-            console.error("Error loading comments:", error);
-            container.innerHTML = '<p class="text-red-500 p-3">ไม่สามารถโหลดคอมเมนต์ได้</p>';
-        }
-    }
-    
+    // Reader: Post Comment
     async function saveComment() {
         const message = document.getElementById('reader-comment-input').value;
         if (!currentUserData) {
@@ -1353,30 +1222,61 @@ window.onload = function() {
     }
     document.getElementById('reader-comment-post-btn').addEventListener('click', saveComment);
 
-    // --- Main Page Functions ---
-    
-    window.showNovelDetail = function(novelId, status) { 
-        currentOpenNovelId = novelId;
-        console.log(`Setting currentOpenNovelId: ${novelId}`);
-        
-        if (status === 'Other') {
-            Swal.fire({
-                title: 'นิยายเรื่องนี้ยังไม่ทราบตอนจบ',
-                text: 'คุณต้องการอ่านต่อหรือไม่?',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#8B5CF6',
-                cancelButtonColor: '#6B7280',
-                confirmButtonText: 'อ่านต่อ',
-                cancelButtonText: 'กลับหน้าหลัก'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    loadAndShowNovelDetail(novelId);
-                }
-            });
-        } else {
-            loadAndShowNovelDetail(novelId);
-        }
+    // Register / Login Event Listeners are already set via onsubmit in HTML or defined above
+
+    // Register Form
+    const registerForm = document.getElementById('register-form');
+    if(registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault(); 
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    const userDocRef = doc(db, 'users', user.uid);
+                    return setDoc(userDocRef, {
+                        username: username,
+                        email: email,
+                        balancePoints: 0,
+                        role: 'user', 
+                        createdAt: Timestamp.now(),
+                        likedNovels: [] 
+                    });
+                })
+                .then(() => {
+                    Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ!', text: `ยินดีต้อนรับ ${username}!`, timer: 2000, showConfirmButton: false });
+                    window.showPage('page-home'); 
+                })
+                .catch((error) => {
+                    console.error("Register Error:", error);
+                    let errorMsg = "เกิดข้อผิดพลาด";
+                    if (error.code === 'auth/email-already-in-use') errorMsg = 'อีเมลนี้ถูกใช้งานแล้ว';
+                    else if (error.code === 'auth/weak-password') errorMsg = 'รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวอักษรขึ้นไป)';
+                    Swal.fire('ลงทะเบียนไม่สำเร็จ', errorMsg, 'error');
+                });
+        });
     }
 
+    // Login Form
+    const loginForm = document.getElementById('login-form');
+    if(loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    window.showPage('page-home'); 
+                    Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                })
+                .catch((error) => {
+                    console.error("Login Error:", error);
+                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'error');
+                });
+        });
+    }
 }; // --- จบ window.onload ---
