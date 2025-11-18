@@ -44,9 +44,10 @@ let currentEditingNovelId = null;
 let currentEditingChapterId = null;
 
 // ============================================================
-//  HELPER FUNCTIONS (ประกาศไว้ข้างนอก เพื่อให้เรียกใช้ได้ทั่วถึง)
+//  1. HELPER FUNCTIONS (ฟังก์ชันช่วยทำงานต่างๆ)
 // ============================================================
 
+// --- Admin: Load Novels to Dropdown ---
 async function loadNovelsForDropdown(elementId) {
     const selectEl = document.getElementById(elementId);
     const authorDatalist = document.getElementById('author-datalist'); 
@@ -103,6 +104,149 @@ async function loadNovelsForDropdown(elementId) {
     }
 }
 
+// --- Admin: Load Novel Data for Editing ---
+async function loadNovelForEditing() {
+    const novelId = document.getElementById('edit-novel-select').value;
+    if (!novelId) {
+        Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกนิยายก่อน', 'warning');
+        return;
+    }
+    
+    try {
+        const docRef = doc(db, "novels", novelId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const novel = docSnap.data();
+            document.getElementById('novel-cover-url').value = novel.coverImageUrl || '';
+            document.getElementById('novel-title-en').value = novel.title_en || '';
+            document.getElementById('novel-title-th').value = novel.title_th || '';
+            document.getElementById('novel-title-original').value = novel.title_original || '';
+            document.getElementById('novel-author').value = novel.author || '';
+            document.getElementById('novel-language').value = novel.language || '';
+            document.getElementById('novel-status').value = novel.status || '';
+            document.getElementById('novel-licensed').checked = novel.isLicensed || false;
+            document.getElementById('novel-description-editor').innerHTML = novel.description || '';
+            
+            document.querySelectorAll('.novel-category-check').forEach(cb => cb.checked = false);
+            if (novel.categories && novel.categories.length > 0) {
+                novel.categories.forEach(catName => {
+                    const checkboxToCheck = document.querySelector(`.novel-category-check[value="${catName}"]`);
+                    if (checkboxToCheck) checkboxToCheck.checked = true;
+                });
+            }
+            
+            currentEditingNovelId = novelId;
+            window.setAdminNovelMode('edit');
+            
+            Swal.fire('โหลดสำเร็จ', `กำลังแก้ไข "${novel.title_en}"`, 'success');
+            
+        } else {
+            Swal.fire('ไม่พบข้อมูล', 'ไม่พบนิยายนี้ในฐานข้อมูล', 'error');
+        }
+    } catch (error) {
+        Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+    }
+}
+
+// --- Admin: Load Chapters dropdown ---
+async function loadChaptersForEditDropdown(novelId) {
+    const selectEl = document.getElementById('edit-chapter-select');
+    const loadBtn = document.getElementById('load-chapter-to-edit-btn');
+    if (!db || !selectEl || !loadBtn) return;
+    
+    // Reset dropdown
+    selectEl.innerHTML = '<option value="">(กรุณาเลือกนิยายก่อน)</option>';
+    selectEl.disabled = true;
+    loadBtn.disabled = true;
+
+    if (!novelId) return;
+
+    selectEl.innerHTML = '<option value="">กำลังโหลดตอน...</option>';
+    
+    try {
+        const q = query(collection(db, "chapters"), where("novelId", "==", novelId));
+        const querySnapshot = await getDocs(q);
+        
+        let chapters = [];
+        querySnapshot.forEach((doc) => {
+            chapters.push({ id: doc.id, ...doc.data() });
+        });
+        chapters.sort((a, b) => a.chapterNumber - b.chapterNumber); 
+        
+        selectEl.innerHTML = `<option value="">เลือกตอน... (${chapters.length} ตอน)</option>`;
+        
+        if (chapters.length === 0) {
+             selectEl.innerHTML = '<option value="">(นิยายเรื่องนี้ยังไม่มีตอน)</option>';
+             // ต้อง disable ไว้ เพราะไม่มีอะไรให้แก้
+             selectEl.disabled = true;
+             loadBtn.disabled = true;
+             return;
+        }
+        
+        // ถ้ามีตอน ให้เปิดใช้งาน dropdown
+        selectEl.disabled = false;
+        loadBtn.disabled = false;
+
+        chapters.forEach(chapter => {
+            const option = document.createElement('option');
+            option.value = chapter.id;
+            option.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+            selectEl.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Error loading chapters for dropdown:", error);
+        selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
+    }
+}
+
+// --- Admin: Load Chapter Data for Editing ---
+async function loadChapterForEditing() {
+    const chapterId = document.getElementById('edit-chapter-select').value;
+    if (!chapterId) {
+        Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกตอนก่อน', 'warning');
+        return;
+    }
+    
+    try {
+        const docRef = doc(db, "chapters", chapterId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const chapter = docSnap.data();
+            document.getElementById('chapter-novel-select').value = chapter.novelId || '';
+            document.getElementById('chapter-number').value = chapter.chapterNumber || '';
+            document.getElementById('chapter-title').value = chapter.title || '';
+            document.getElementById('chapter-content-editor').innerHTML = chapter.content || '';
+            let pointValue;
+            if (chapter.pointCost === 0) pointValue = '0';
+            else if (chapter.type === 'Normal') pointValue = `${chapter.pointCost}`;
+            else pointValue = `${chapter.pointCost}-${chapter.type}`;
+            document.getElementById('chapter-point-type').value = pointValue;
+            
+            if (chapter.scheduledAt) {
+                const date = chapter.scheduledAt.toDate();
+                date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+                document.getElementById('chapter-schedule').value = date.toISOString().slice(0,16);
+            } else {
+                document.getElementById('chapter-schedule').value = '';
+            }
+            
+            currentEditingChapterId = chapterId;
+            window.setAdminChapterMode('edit');
+            
+            Swal.fire('โหลดสำเร็จ', `กำลังแก้ไข "${chapter.title}"`, 'success');
+            
+        } else {
+            Swal.fire('ไม่พบข้อมูล', 'ไม่พบนิยายนี้ในฐานข้อมูล', 'error');
+        }
+    } catch (error) {
+        console.log(error);
+        Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+    }
+}
+
+// --- Other Helpers ---
 async function loadAdminNotifications() {
     const container = document.getElementById('admin-notify-container');
     if (!db || !container) return;
@@ -166,7 +310,7 @@ async function loadNovels() {
         if (loadingText) loadingText.style.display = 'block'; 
     });
     const homeUpdatesContainer = document.getElementById('home-latest-updates');
-    homeUpdatesContainer.innerHTML = ''; // ล้างหน้า Home
+    homeUpdatesContainer.innerHTML = ''; 
     
     try {
         const querySnapshot = await getDocs(collection(db, "novels"));
@@ -279,7 +423,6 @@ async function checkAdminNotifications() {
     }
 }
 
-// --- Helper for Author Other Works ---
 async function loadAuthorOtherWorks(authorName, currentId) {
     const container = document.getElementById('detail-other-works');
     if(!container) return;
@@ -343,7 +486,6 @@ async function loadAuthorOtherWorks(authorName, currentId) {
     }
 }
 
-// --- Helper for Check User Like ---
 async function checkUserLikeStatus(novelId, totalLikes) {
     const likeBtn = document.getElementById('detail-like-btn');
     const likeIcon = likeBtn.querySelector('i') || likeBtn.querySelector('svg');
@@ -380,7 +522,6 @@ async function checkUserLikeStatus(novelId, totalLikes) {
     }
 }
 
-// --- Helper for Novel Details ---
 async function loadNovelDetails(novelId) {
     if (!db || !novelId) return;
     document.getElementById('detail-cover-img').src = 'https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading...';
@@ -439,7 +580,6 @@ async function loadNovelDetails(novelId) {
     }
 }
 
-// --- Helper for Chapters ---
 function getChapterBadge(pointCost, type) {
     if (pointCost === 0) return `<span class="text-sm font-medium px-2 py-1 rounded" style="color: #778899; border: 1px solid #778899;">อ่านฟรี</span>`;
     if (pointCost === 5) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #00bfff; color: white;">${pointCost} Points</span>`;
@@ -503,7 +643,6 @@ async function loadAndShowNovelDetail(novelId) {
     ]);
 }
 
-// --- Helper for Reader ---
 async function loadChapterContent(chapterId) {
     console.log(`Loading content for chapter ${chapterId}`);
     const readerTitle = document.getElementById('reader-title');
@@ -590,10 +729,9 @@ async function loadComments(chapterId) {
 }
 
 // ============================================================
-//  WINDOW FUNCTIONS (ฟังก์ชันที่ HTML เรียกใช้ผ่าน onclick)
+//  2. WINDOW FUNCTIONS (ฟังก์ชันที่ HTML เรียกใช้ผ่าน onclick)
 // ============================================================
 
-// --- Page Navigation ---
 window.showPage = function(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -604,19 +742,18 @@ window.showPage = function(pageId) {
     }
     
     if (pageId === 'page-admin-add-novel') {
-        loadNovelsForDropdown('edit-novel-select'); // เรียกใช้ได้แล้ว!
+        loadNovelsForDropdown('edit-novel-select'); 
         window.setAdminNovelMode('add'); 
     }
     if (pageId === 'page-admin-add-chapter') {
-        loadNovelsForDropdown('chapter-novel-select'); // เรียกใช้ได้แล้ว!
+        loadNovelsForDropdown('chapter-novel-select'); 
         loadNovelsForDropdown('edit-chapter-novel-select');
         window.setAdminChapterMode('add'); 
     }
     if (pageId === 'page-admin-notifications') {
-        loadAdminNotifications(); // เรียกใช้ได้แล้ว!
+        loadAdminNotifications(); 
     }
     
-    // Scroll to top
     if (window.scrollToTop) window.scrollToTop();
 }
 
@@ -868,7 +1005,7 @@ window.logout = function() {
 }
 
 // ============================================================
-//  WINDOW.ONLOAD (เริ่มทำงานเมื่อโหลดหน้าเสร็จ)
+//  3. WINDOW.ONLOAD (เริ่มทำงานเมื่อโหลดหน้าเสร็จ)
 // ============================================================
 
 window.onload = function() {
@@ -1019,99 +1156,11 @@ window.onload = function() {
     });
 
     // Admin: Edit Chapter - Select Logic
-    async function loadChaptersForEditDropdown(novelId) {
-        const selectEl = document.getElementById('edit-chapter-select');
-        const loadBtn = document.getElementById('load-chapter-to-edit-btn');
-        if (!db || !selectEl || !loadBtn) return;
-        if (!novelId) {
-            selectEl.innerHTML = '<option value="">(กรุณาเลือกนิยายก่อน)</option>';
-            selectEl.disabled = true;
-            loadBtn.disabled = true;
-            return;
-        }
-
-        selectEl.innerHTML = '<option value="">กำลังโหลดตอน...</option>';
-        selectEl.disabled = false;
-        loadBtn.disabled = false;
-        
-        try {
-            const q = query(collection(db, "chapters"), where("novelId", "==", novelId));
-            const querySnapshot = await getDocs(q);
-            
-            let chapters = [];
-            querySnapshot.forEach((doc) => {
-                chapters.push({ id: doc.id, ...doc.data() });
-            });
-            chapters.sort((a, b) => a.chapterNumber - b.chapterNumber); 
-            
-            selectEl.innerHTML = `<option value="">เลือกตอน... (${chapters.length} ตอน)</option>`;
-            if (chapters.length === 0) {
-                 selectEl.innerHTML = '<option value="">(ยังไม่มีตอน)</option>';
-                 selectEl.disabled = true;
-                 loadBtn.disabled = true;
-                 return;
-            }
-            
-            chapters.forEach(chapter => {
-                const option = document.createElement('option');
-                option.value = chapter.id;
-                option.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
-                selectEl.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Error loading chapters for dropdown:", error);
-            selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
-        }
-    }
     document.getElementById('edit-chapter-novel-select').addEventListener('change', (e) => {
         loadChaptersForEditDropdown(e.target.value);
     });
 
     // Admin: Edit Chapter - Load Button
-    async function loadChapterForEditing() {
-        const chapterId = document.getElementById('edit-chapter-select').value;
-        if (!chapterId) {
-            Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกตอนก่อน', 'warning');
-            return;
-        }
-        
-        try {
-            const docRef = doc(db, "chapters", chapterId);
-            const docSnap = await getDoc(docRef);
-            
-            if (docSnap.exists()) {
-                const chapter = docSnap.data();
-                document.getElementById('chapter-novel-select').value = chapter.novelId || '';
-                document.getElementById('chapter-number').value = chapter.chapterNumber || '';
-                document.getElementById('chapter-title').value = chapter.title || '';
-                document.getElementById('chapter-content-editor').innerHTML = chapter.content || '';
-                let pointValue;
-                if (chapter.pointCost === 0) pointValue = '0';
-                else if (chapter.type === 'Normal') pointValue = `${chapter.pointCost}`;
-                else pointValue = `${chapter.pointCost}-${chapter.type}`;
-                document.getElementById('chapter-point-type').value = pointValue;
-                
-                if (chapter.scheduledAt) {
-                    const date = chapter.scheduledAt.toDate();
-                    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-                    document.getElementById('chapter-schedule').value = date.toISOString().slice(0,16);
-                } else {
-                    document.getElementById('chapter-schedule').value = '';
-                }
-                
-                currentEditingChapterId = chapterId;
-                window.setAdminChapterMode('edit');
-                
-                Swal.fire('โหลดสำเร็จ', `กำลังแก้ไข "${chapter.title}"`, 'success');
-                
-            } else {
-                Swal.fire('ไม่พบข้อมูล', 'ไม่พบนิยายนี้ในฐานข้อมูล', 'error');
-            }
-        } catch (error) {
-            console.log(error);
-            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-        }
-    }
     document.getElementById('load-chapter-to-edit-btn').addEventListener('click', loadChapterForEditing);
 
     // Admin: Edit Chapter - Save/Update Form
@@ -1222,9 +1271,7 @@ window.onload = function() {
     }
     document.getElementById('reader-comment-post-btn').addEventListener('click', saveComment);
 
-    // Register / Login Event Listeners are already set via onsubmit in HTML or defined above
-
-    // Register Form
+    // Register / Login Event Listeners (if forms exist)
     const registerForm = document.getElementById('register-form');
     if(registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -1260,7 +1307,6 @@ window.onload = function() {
         });
     }
 
-    // Login Form
     const loginForm = document.getElementById('login-form');
     if(loginForm) {
         loginForm.addEventListener('submit', (e) => {
