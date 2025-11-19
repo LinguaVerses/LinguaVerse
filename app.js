@@ -30,7 +30,7 @@ const firebaseConfig = {
     messagingSenderId: "31579058890",
     appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
 };
-// --- Global Variables ---
+// --- Global Variables (รวมให้กระชับ) ---
 let app, auth, db;
 let currentUser = null; 
 let currentUserData = null;
@@ -40,8 +40,8 @@ let currentOpenChapterTitle = null;
 let novelCache = [];
 let currentEditingNovelId = null;
 let currentEditingChapterId = null;
-// --- สำหรับการนำทางระหว่างตอน ---
 let currentNovelChapters = []; 
+// ------------------------------------------
 
 // ============================================================
 //  1. HELPER FUNCTIONS (ฟังก์ชันช่วยทำงานต่างๆ)
@@ -649,7 +649,7 @@ async function loadAndShowNovelDetail(novelId) {
 }
 
 
-// --- New Helper: Load and Cache Chapters for Navigation ---
+// --- Helper: Load and Cache Chapters for Navigation ---
 async function loadNovelChapterList(novelId) {
     if (!db || !novelId) return;
 
@@ -678,7 +678,7 @@ async function loadNovelChapterList(novelId) {
 }
 
 
-// --- New Helper: Create Navigation Buttons ---
+// --- Helper: Create Navigation Buttons ---
 function createReaderNavigation(currentChapterId) {
     const navButtons = document.getElementById('reader-navigation-buttons');
     if (!navButtons) return;
@@ -974,7 +974,8 @@ window.showPointAlert = function(chapterId, pointCost) {
                 });
                 
                 currentUserData.balancePoints = newPoints;
-                userPoints.textContent = `${newPoints} Points`;
+                const userPointsEl = document.getElementById('user-points');
+                if (userPointsEl) userPointsEl.textContent = `${newPoints} Points`;
                
   
                 Swal.fire(
@@ -1080,6 +1081,9 @@ window.showNovelDetail = function(novelId, status) {
 
 window.logout = function() { 
     signOut(auth).then(() => {
+        // ต้องอัปเดตสถานะ UI เมื่อ Logout ด้วย
+        currentUser = null;
+        currentUserData = null;
         window.showPage('page-home');
     }).catch((error) => {
         console.error("Logout Error:", error);
@@ -1087,12 +1091,12 @@ window.logout = function() {
 }
 
 // -------------------------------------------------------------------------------------------------------
-//  3. WINDOW.ONLOAD (แก้ปัญหาการทำงานของปุ่ม โดยจัดลำดับการเริ่มต้นใหม่)
+//  3. WINDOW.ONLOAD (การตั้งค่า Event Listener และการเริ่มต้นระบบหลัก)
 // -------------------------------------------------------------------------------------------------------
 
 window.onload = function() {
     
-    // 1. Initialize Lucide Icons ก่อนเพื่อป้องกันการ crash ของโค้ดที่เรียกใช้ icon
+    // 1. Initialize Lucide Icons ก่อน เพื่อให้มั่นใจว่าไอคอนจะถูกสร้างเมื่อมีการเรียกใช้
     try {
         if (window.lucide) window.lucide.createIcons();
     } catch (error) {
@@ -1111,7 +1115,235 @@ window.onload = function() {
         return; 
     }
     
-    // 3. Auth State Listener (โค้ดหลักที่ควรทำงานหลังจาก Firebase พร้อม)
+    // 3. Event Listeners for Forms (ต้องตั้งค่าก่อน onAuthStateChanged เพื่อให้ปุ่ม Login/Register ทำงานได้ทันที)
+    
+    // --- Register Form ---
+    const registerForm = document.getElementById('register-form');
+    if(registerForm) {
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault(); 
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            
+            createUserWithEmailAndPassword(auth, email, password)
+    
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    const userDocRef = doc(db, 'users', user.uid);
+                    return setDoc(userDocRef, {
+                
+                        username: username,
+                        email: email,
+                        balancePoints: 0,
+                        role: 'user', 
+               
+                        createdAt: Timestamp.now(),
+                        likedNovels: [] 
+                    });
+                })
+                .then(() => {
+          
+                    Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ!', text: `ยินดีต้อนรับ ${username}!`, timer: 2000, showConfirmButton: false });
+                    // ไม่ต้องเรียก showPage เพราะ onAuthStateChanged จะทำงานต่อ
+                })
+                .catch((error) => {
+                    console.error("Register Error:", error);
+                    let errorMsg = "เกิดข้อผิดพลาด";
+                    if (error.code === 'auth/email-already-in-use') errorMsg = 'อีเมลนี้ถูกใช้งานแล้ว';
+          
+                    else if (error.code === 'auth/weak-password') errorMsg = 'รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวอักษรขึ้นไป)';
+                    Swal.fire('ลงทะเบียนไม่สำเร็จ', errorMsg, 'error');
+                });
+        });
+    }
+
+    // --- Login Form ---
+    const loginForm = document.getElementById('login-form');
+    if(loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            signInWithEmailAndPassword(auth, email, password)
+           
+                .then((userCredential) => {
+                    // ไม่ต้องเรียก showPage เพราะ onAuthStateChanged จะทำงานต่อ
+                    Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                })
+                .catch((error) => {
+     
+                    console.error("Login Error:", error);
+                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'error');
+                });
+        });
+    }
+
+    // --- อื่นๆ ที่ต้องตั้งค่าทันที ---
+    document.getElementById('load-novel-to-edit-btn').addEventListener('click', loadNovelForEditing);
+    document.getElementById('add-novel-form').addEventListener('submit', async (e) => { 
+        e.preventDefault(); 
+        
+        const categoriesCheckboxes = document.querySelectorAll('.novel-category-check:checked');
+        const categories = Array.from(categoriesCheckboxes).map(cb => cb.value);
+
+        const novelData = {
+            title_en: document.getElementById('novel-title-en').value,
+            title_th: document.getElementById('novel-title-th').value,
+       
+            title_original: document.getElementById('novel-title-original').value,
+            author: document.getElementById('novel-author').value,
+            coverImageUrl: document.getElementById('novel-cover-url').value,
+            description: document.getElementById('novel-description-editor').innerHTML,
+            language: document.getElementById('novel-language').value,
+            status: document.getElementById('novel-status').value,
+            categories: categories,
+            isLicensed: document.getElementById('novel-licensed').checked,
+   
+        };
+        try {
+            if (currentEditingNovelId) {
+                const novelDocRef = doc(db, 'novels', currentEditingNovelId);
+                await updateDoc(novelDocRef, novelData);
+                
+                Swal.fire('อัปเดตสำเร็จ!', `นิยายเรื่อง "${novelData.title_en}" ถูกอัปเดตแล้ว`, 'success');
+                loadNovels(); 
+                window.setAdminNovelMode('add');
+            } else {
+                novelData.totalLikes = 0;
+                novelData.createdAt = Timestamp.now();
+                novelData.lastChapterUpdatedAt = Timestamp.now();
+                
+                await addDoc(collection(db, 'novels'), novelData);
+                
+                Swal.fire('เพิ่มนิยายสำเร็จ!', `นิยายเรื่อง "${novelData.title_en}" ถูกบันทึกแล้ว`, 'success');
+                loadNovels(); 
+                window.setAdminNovelMode('add');
+            }
+        } catch (error) {
+            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+        }
+    });
+
+    document.getElementById('edit-chapter-novel-select').addEventListener('change', (e) => {
+        loadChaptersForEditDropdown(e.target.value);
+    });
+    document.getElementById('load-chapter-to-edit-btn').addEventListener('click', loadChapterForEditing);
+    document.getElementById('add-chapter-form').addEventListener('submit', async (e) => { 
+        e.preventDefault();
+        
+        const pointTypeValue = document.getElementById('chapter-point-type').value;
+        let pointCost = 0;
+        let chapterType = 'Normal';
+        
+        if (pointTypeValue.includes('-')) {
+            const parts = pointTypeValue.split('-');
+   
+            pointCost = parseInt(parts[0]);
+            chapterType = parts[1];
+        } else {
+            pointCost = parseInt(pointTypeValue);
+            if (pointCost === 20) chapterType = 'NC';
+        }
+
+        const scheduleTimeInput = document.getElementById('chapter-schedule').value;
+        let scheduledAt = Timestamp.now();
+   
+        if (scheduleTimeInput) {
+             scheduledAt = Timestamp.fromDate(new Date(scheduleTimeInput));
+        }
+        
+        const chapterData = {
+            novelId: document.getElementById('chapter-novel-select').value,
+            chapterNumber: parseFloat(document.getElementById('chapter-number').value),
+            title: document.getElementById('chapter-title').value,
+           
+            content: document.getElementById('chapter-content-editor').innerHTML,
+            pointCost: pointCost,
+            type: chapterType,
+            scheduledAt: scheduledAt,
+        };
+        if (!chapterData.novelId || !chapterData.title || isNaN(chapterData.chapterNumber)) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอก "นิยาย", "ตอนที่", และ "ชื่อตอน" ให้ครบ', 'warning');
+            return;
+        }
+        
+        const parentNovelRef = doc(db, 'novels', chapterData.novelId);
+        try {
+            if (currentEditingChapterId) {
+                const chapterDocRef = doc(db, 'chapters', currentEditingChapterId);
+                await updateDoc(chapterDocRef, chapterData);
+                await updateDoc(parentNovelRef, {
+                    lastChapterUpdatedAt: Timestamp.now()
+                });
+                Swal.fire('อัปเดตสำเร็จ!', `ตอน "${chapterData.title}" ถูกอัปเดตแล้ว`, 'success');
+                window.setAdminChapterMode('add'); 
+                
+            } else {
+                chapterData.createdAt = Timestamp.now();
+                await addDoc(collection(db, 'chapters'), chapterData);
+                await updateDoc(parentNovelRef, {
+                    lastChapterUpdatedAt: Timestamp.now()
+                });
+                Swal.fire('เพิ่มตอนใหม่สำเร็จ!', `ตอน "${chapterData.title}" ถูกบันทึกแล้ว`, 'success');
+                window.setAdminChapterMode('add'); 
+            }
+            
+            loadNovels();
+        } catch (error) {
+             Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+        }
+    });
+    
+    // Reader: Post Comment
+    async function saveComment() {
+        const message = document.getElementById('reader-comment-input').value;
+        if (!currentUserData) {
+            Swal.fire('ข้อผิดพลาด', 'กรุณาเข้าสู่ระบบก่อนคอมเมนต์', 'error');
+            return;
+        }
+        if (!message.trim()) {
+            Swal.fire('ข้อผิดพลาด', 'กรุณาพิมพ์ข้อความ', 'warning');
+            return;
+        }
+        if (!currentOpenChapterId) {
+            console.error("currentOpenChapterId is not set!");
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบ ID ของตอน', 'error');
+            return;
+        }
+        
+        const commentData = {
+            chapterId: currentOpenChapterId,
+            novelId: currentOpenNovelId,
+            chapterTitle: currentOpenChapterTitle ||
+                '...',
+            userId: currentUser.uid,
+            username: currentUserData.username,
+            profileIcon: "default", 
+            message: message,
+            parentCommentId: null, 
+            totalLikes: 0,
+            createdAt: Timestamp.now(),
+       
+            isReadByAdmin: false 
+        };
+        try {
+            await addDoc(collection(db, "comments"), commentData);
+            
+            document.getElementById('reader-comment-input').value = '';
+            loadComments(currentOpenChapterId); 
+            checkAdminNotifications(); 
+            
+        } catch (error) {
+            console.error("Error saving comment:", error);
+            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกคอมเมนต์ได้', 'error');
+        }
+    }
+    document.getElementById('reader-comment-post-btn').addEventListener('click', saveComment);
+
+    
+    // 4. Auth State Listener (ควรเป็นส่วนสุดท้ายที่รันในโค้ดเริ่มต้น)
     const loggedOutView = document.getElementById('auth-logged-out');
     const loggedInView = document.getElementById('auth-logged-in');
     const userUsername = document.getElementById('user-username');
@@ -1190,232 +1422,5 @@ window.onload = function() {
             loadNovels();
         }
     });
-    // 4. Event Listeners for Forms
-    
-    // Admin: Edit Novel - Load Button
-    document.getElementById('load-novel-to-edit-btn').addEventListener('click', loadNovelForEditing);
-    // Admin: Edit Novel - Save/Update Form
-    document.getElementById('add-novel-form').addEventListener('submit', async (e) => { 
-        e.preventDefault(); 
-        
-        const categoriesCheckboxes = document.querySelectorAll('.novel-category-check:checked');
-        const categories = Array.from(categoriesCheckboxes).map(cb => cb.value);
 
-        const novelData = {
-            title_en: document.getElementById('novel-title-en').value,
-            title_th: document.getElementById('novel-title-th').value,
-       
-            title_original: document.getElementById('novel-title-original').value,
-            author: document.getElementById('novel-author').value,
-            coverImageUrl: document.getElementById('novel-cover-url').value,
-            description: document.getElementById('novel-description-editor').innerHTML,
-            language: document.getElementById('novel-language').value,
-            status: document.getElementById('novel-status').value,
-            categories: categories,
-            isLicensed: document.getElementById('novel-licensed').checked,
-   
-        };
-        try {
-            if (currentEditingNovelId) {
-                const novelDocRef = doc(db, 'novels', currentEditingNovelId);
-                await updateDoc(novelDocRef, novelData);
-                
-                Swal.fire('อัปเดตสำเร็จ!', `นิยายเรื่อง "${novelData.title_en}" ถูกอัปเดตแล้ว`, 'success');
-                loadNovels(); 
-                window.setAdminNovelMode('add');
-            } else {
-                novelData.totalLikes = 0;
-                novelData.createdAt = Timestamp.now();
-                novelData.lastChapterUpdatedAt = Timestamp.now();
-                
-                await addDoc(collection(db, 'novels'), novelData);
-                
-                Swal.fire('เพิ่มนิยายสำเร็จ!', `นิยายเรื่อง "${novelData.title_en}" ถูกบันทึกแล้ว`, 'success');
-                loadNovels(); 
-                window.setAdminNovelMode('add');
-            }
-        } catch (error) {
-            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-        }
-    });
-
-    // Admin: Edit Chapter - Select Logic
-    document.getElementById('edit-chapter-novel-select').addEventListener('change', (e) => {
-        loadChaptersForEditDropdown(e.target.value);
-    });
-    // Admin: Edit Chapter - Load Button
-    document.getElementById('load-chapter-to-edit-btn').addEventListener('click', loadChapterForEditing);
-    // Admin: Edit Chapter - Save/Update Form
-    document.getElementById('add-chapter-form').addEventListener('submit', async (e) => { 
-        e.preventDefault();
-        
-        const pointTypeValue = document.getElementById('chapter-point-type').value;
-        let pointCost = 0;
-        let chapterType = 'Normal';
-        
-        if (pointTypeValue.includes('-')) {
-            const parts = pointTypeValue.split('-');
-   
-            pointCost = parseInt(parts[0]);
-            chapterType = parts[1];
-        } else {
-            pointCost = parseInt(pointTypeValue);
-            if (pointCost === 20) chapterType = 'NC';
-        }
-
-        const scheduleTimeInput = document.getElementById('chapter-schedule').value;
-        let scheduledAt = Timestamp.now();
-   
-        if (scheduleTimeInput) {
-             scheduledAt = Timestamp.fromDate(new Date(scheduleTimeInput));
-        }
-        
-        const chapterData = {
-            novelId: document.getElementById('chapter-novel-select').value,
-            chapterNumber: parseFloat(document.getElementById('chapter-number').value),
-            title: document.getElementById('chapter-title').value,
-           
-            content: document.getElementById('chapter-content-editor').innerHTML,
-            pointCost: pointCost,
-            type: chapterType,
-            scheduledAt: scheduledAt,
-        };
-        if (!chapterData.novelId || !chapterData.title || isNaN(chapterData.chapterNumber)) {
-            Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอก "นิยาย", "ตอนที่", และ "ชื่อตอน" ให้ครบ', 'warning');
-            return;
-        }
-        
-        const parentNovelRef = doc(db, 'novels', chapterData.novelId);
-        try {
-            if (currentEditingChapterId) {
-                const chapterDocRef = doc(db, 'chapters', currentEditingChapterId);
-                await updateDoc(chapterDocRef, chapterData);
-                await updateDoc(parentNovelRef, {
-                    lastChapterUpdatedAt: Timestamp.now()
-                });
-                Swal.fire('อัปเดตสำเร็จ!', `ตอน "${chapterData.title}" ถูกอัปเดตแล้ว`, 'success');
-                window.setAdminChapterMode('add'); 
-                
-            } else {
-                chapterData.createdAt = Timestamp.now();
-                await addDoc(collection(db, 'chapters'), chapterData);
-                await updateDoc(parentNovelRef, {
-                    lastChapterUpdatedAt: Timestamp.now()
-                });
-                Swal.fire('เพิ่มตอนใหม่สำเร็จ!', `ตอน "${chapterData.title}" ถูกบันทึกแล้ว`, 'success');
-                window.setAdminChapterMode('add'); 
-            }
-            
-            loadNovels();
-        } catch (error) {
-             Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
-        }
-    });
-
-    // Reader: Post Comment
-    async function saveComment() {
-        const message = document.getElementById('reader-comment-input').value;
-        if (!currentUserData) {
-            Swal.fire('ข้อผิดพลาด', 'กรุณาเข้าสู่ระบบก่อนคอมเมนต์', 'error');
-            return;
-        }
-        if (!message.trim()) {
-            Swal.fire('ข้อผิดพลาด', 'กรุณาพิมพ์ข้อความ', 'warning');
-            return;
-        }
-        if (!currentOpenChapterId) {
-            console.error("currentOpenChapterId is not set!");
-            Swal.fire('ข้อผิดพลาด', 'ไม่พบ ID ของตอน', 'error');
-            return;
-        }
-        
-        const commentData = {
-            chapterId: currentOpenChapterId,
-            novelId: currentOpenNovelId,
-            chapterTitle: currentOpenChapterTitle ||
-                '...',
-            userId: currentUser.uid,
-            username: currentUserData.username,
-            profileIcon: "default", 
-            message: message,
-            parentCommentId: null, 
-            totalLikes: 0,
-            createdAt: Timestamp.now(),
-       
-            isReadByAdmin: false 
-        };
-        try {
-            await addDoc(collection(db, "comments"), commentData);
-            
-            document.getElementById('reader-comment-input').value = '';
-            loadComments(currentOpenChapterId); 
-            checkAdminNotifications(); 
-            
-        } catch (error) {
-            console.error("Error saving comment:", error);
-            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกคอมเมนต์ได้', 'error');
-        }
-    }
-    document.getElementById('reader-comment-post-btn').addEventListener('click', saveComment);
-    // Register / Login Event Listeners (if forms exist)
-    const registerForm = document.getElementById('register-form');
-    if(registerForm) {
-        registerForm.addEventListener('submit', (e) => {
-            e.preventDefault(); 
-            const username = document.getElementById('reg-username').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
-            
-            createUserWithEmailAndPassword(auth, email, password)
-    
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    const userDocRef = doc(db, 'users', user.uid);
-                    return setDoc(userDocRef, {
-                
-                        username: username,
-                        email: email,
-                        balancePoints: 0,
-                        role: 'user', 
-               
-                        createdAt: Timestamp.now(),
-                        likedNovels: [] 
-                    });
-                })
-                .then(() => {
-          
-                    Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ!', text: `ยินดีต้อนรับ ${username}!`, timer: 2000, showConfirmButton: false });
-                    window.showPage('page-home'); 
-                })
-                .catch((error) => {
-                    console.error("Register Error:", error);
-                    let errorMsg = "เกิดข้อผิดพลาด";
-                    if (error.code === 'auth/email-already-in-use') errorMsg = 'อีเมลนี้ถูกใช้งานแล้ว';
-          
-                    else if (error.code === 'auth/weak-password') errorMsg = 'รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวอักษรขึ้นไป)';
-                    Swal.fire('ลงทะเบียนไม่สำเร็จ', errorMsg, 'error');
-                });
-        });
-    }
-
-    const loginForm = document.getElementById('login-form');
-    if(loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            signInWithEmailAndPassword(auth, email, password)
-           
-                .then((userCredential) => {
-                    window.showPage('page-home'); 
-                    Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-                })
-                .catch((error) => {
-     
-                    console.error("Login Error:", error);
-                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'error');
-                });
-        });
-    }
 }; // --- จบ window.onload ---
