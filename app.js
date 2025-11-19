@@ -40,9 +40,8 @@ let currentOpenChapterTitle = null;
 let novelCache = [];
 let currentEditingNovelId = null;
 let currentEditingChapterId = null;
-// --- เพิ่มใหม่: สำหรับการนำทางระหว่างตอน ---
+// --- สำหรับการนำทางระหว่างตอน ---
 let currentNovelChapters = []; 
-// ------------------------------------------
 
 // ============================================================
 //  1. HELPER FUNCTIONS (ฟังก์ชันช่วยทำงานต่างๆ)
@@ -714,7 +713,7 @@ async function loadChapterContent(chapterId) {
     const readerTitle = document.getElementById('reader-title');
     const readerChapterTitle = document.getElementById('reader-chapter-title');
     const readerContentDiv = document.getElementById('reader-content-div');
-    // --- เพิ่มใหม่: เตรียมที่สำหรับปุ่ม ---
+    // --- เตรียมที่สำหรับปุ่ม ---
     const navButtons = document.getElementById('reader-navigation-buttons'); 
     if (navButtons) navButtons.innerHTML = ''; // เคลียร์ปุ่มเดิม
     // ------------------------------------
@@ -726,7 +725,7 @@ async function loadChapterContent(chapterId) {
     
     window.showPage('page-reader');
 
-    // --- เพิ่มใหม่: โหลดรายการตอนทั้งหมดมาก่อน ---
+    // --- โหลดรายการตอนทั้งหมดมาก่อน ---
     await loadNovelChapterList(currentOpenNovelId);
     
     try {
@@ -739,7 +738,7 @@ async function loadChapterContent(chapterId) {
             readerContentDiv.innerHTML = chapter.content;
             currentOpenChapterTitle = chapter.title; 
             
-            // --- เพิ่มใหม่: สร้างปุ่มนำทาง ---
+            // --- สร้างปุ่มนำทาง ---
             createReaderNavigation(chapterId);
             // --------------------------------
             
@@ -836,6 +835,8 @@ window.showPage = function(pageId) {
     }
     
     if (window.scrollToTop) window.scrollToTop();
+    // เรียกสร้าง icon ทุกครั้งที่เปลี่ยนหน้าเพื่อแก้ปัญหาในหน้า detail/reader
+    if (window.lucide) window.lucide.createIcons();
 }
 
 window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = null) {
@@ -1085,13 +1086,20 @@ window.logout = function() {
     });
 }
 
-// ============================================================
-//  3. WINDOW.ONLOAD (เริ่มทำงานเมื่อโหลดหน้าเสร็จ)
-// ============================================================
+// -------------------------------------------------------------------------------------------------------
+//  3. WINDOW.ONLOAD (แก้ปัญหาการทำงานของปุ่ม โดยจัดลำดับการเริ่มต้นใหม่)
+// -------------------------------------------------------------------------------------------------------
 
 window.onload = function() {
     
-    // 1. Initialize Firebase
+    // 1. Initialize Lucide Icons ก่อนเพื่อป้องกันการ crash ของโค้ดที่เรียกใช้ icon
+    try {
+        if (window.lucide) window.lucide.createIcons();
+    } catch (error) {
+        console.error("Lucide icon creation failed:", error);
+    }
+    
+    // 2. Initialize Firebase
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
@@ -1103,14 +1111,7 @@ window.onload = function() {
         return; 
     }
     
-    // 2. Initialize Lucide Icons
-    try {
-        lucide.createIcons();
-    } catch (error) {
-        console.error("Lucide icon creation failed:", error);
-    }
-
-    // 3. Auth State Listener
+    // 3. Auth State Listener (โค้ดหลักที่ควรทำงานหลังจาก Firebase พร้อม)
     const loggedOutView = document.getElementById('auth-logged-out');
     const loggedInView = document.getElementById('auth-logged-in');
     const userUsername = document.getElementById('user-username');
