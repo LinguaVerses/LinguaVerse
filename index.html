@@ -16,36 +16,43 @@
     <header class="bg-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2 cursor-pointer" onclick="window.showPage('page-home')">
+      
                 <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV" alt="Logo" class="rounded-full">
                 <span class="text-2xl font-bold text-purple-600">LinguaVerse</span>
             </div>
 
             <div id="main-nav-desktop" class="hidden md:flex items-center space-x-6">
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-home')">Home</a>
-                <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-novels-center')">Novels</a>
+                <a href="#" 
+class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-novels-center')">Novels</a>
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-coffee')">Coffee</a>
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-about')">About Us</a>
                 <a href="#" class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-contact')">Contact Us</a>
             </div>
 
             <div class="flex items-center space-x-3">
+     
                 <div id="auth-logged-out" class="flex items-center space-x-3">
                     <button class="text-gray-600 hover:text-purple-600 font-medium" onclick="window.showPage('page-register')">ลงทะเบียน</button>
                     <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium shadow-md transition-colors" onclick="window.showPage('page-login')">เข้าสู่ระบบ</button>
                 </div>
-                <div id="auth-logged-in" class="hidden items-center space-x-4">
+               
+ <div id="auth-logged-in" class="hidden items-center space-x-4">
                     <div class="text-right">
                         <div id="user-username" class="font-semibold text-purple-700">Username</div>
                         <div id="user-points" class="text-sm text-gray-500">... Points</div>
-                    </div>
+                   
+ </div>
                     <button id="admin-notify-btn" class="hidden text-gray-500 hover:text-purple-600 relative" onclick="window.showPage('page-admin-notifications')">
                         <i data-lucide="bell"></i>
                         <span id="admin-notify-badge" class="hidden absolute p-1 text-xs font-bold text-white bg-red-500 rounded-full text-center">0</span>
-                    </button>
+              
+        </button>
                     <button id="admin-settings-btn" class="hidden text-gray-500 hover:text-purple-600" onclick="window.showPage('page-admin-add-novel')">
                         <i data-lucide="settings"></i>
                     </button>
-                    <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-lg" onclick="window.logout()">
+                    <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 
+px-3 py-1 rounded-lg" onclick="window.logout()">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -54,87 +61,105 @@
     </header>
 
     <main class="container mx-auto p-4 md:p-8">
-        
+  
+       
         <div id="page-home" class="page active">
             <section class="bg-gradient-to-r from-purple-600 to-purple-400 text-white p-8 md:p-12 rounded-xl shadow-lg">
                 <div class="flex flex-col md:flex-row items-center justify-between">
                     <div class="md:w-1/2 mb-6 md:mb-0 text-center md:text-left">
-                        <h1 class="text-4xl md:text-5xl font-bold mb-4">ยินดีต้อนรับสู่ LinguaVerse</h1>
+                 
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">ยินดีต้อนรับสู่ LinguaVerse</h1>
                         <p class="text-xl md:text-2xl text-purple-100 mb-6">โลกแห่งจินตนาการและการแปลที่ไร้ขีดจำกัด</p>
                         <div class="flex justify-center md:justify-start space-x-4">
-                            <button class="bg-white text-purple-600 font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-gray-100" onclick="window.showPage('page-novels-center')">เริ่มอ่านเลย</button>
+                            <button class="bg-white text-purple-600 font-semibold 
+px-6 py-3 rounded-lg shadow-md hover:bg-gray-100" onclick="window.showPage('page-novels-center')">เริ่มอ่านเลย</button>
                             <button class="bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-purple-800" onclick="window.showPage('page-register')">สมัครสมาชิก</button>
                         </div>
                     </div>
-                    <div class="md:w-1/2 h-64 md:h-80 bg-purple-900 rounded-lg shadow-xl flex items-center justify-center">
+              
+        <div class="md:w-1/2 h-64 md:h-80 bg-purple-900 rounded-lg shadow-xl flex items-center justify-center">
                         <span class="text-purple-300">Anime Reading Video / Image</span>
                     </div>
                 </div>
             </section>
-            <div class="mt-8 p-6 bg-white rounded-lg shadow">
+        
+     <div class="mt-8 p-6 bg-white rounded-lg shadow">
                 <h2 class="text-2xl font-bold mb-4">นิยายอัปเดตล่าสุด</h2>
                 <div id="home-latest-updates" class="space-y-2">
                     <p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>
                 </div>
             </div>
-        </div>
+     
+    </div>
 
         <div id="page-register" class="page">
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">สร้างบัญชีใหม่</h2>
                 <form id="register-form" class="space-y-4">
                     <div>
+         
                         <label for="reg-username" class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้งาน (Username)</label>
                         <input type="text" id="reg-username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
                     </div>
-                    <div>
+                    
+ <div>
                         <label for="reg-email" class="block text-sm font-medium text-gray-700">อีเมล (Email)</label>
                         <input type="email" id="reg-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
                     </div>
-                    <div>
+           
+          <div>
                         <label for="reg-password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
                         <div class="relative">
-                            <input type="password" id="reg-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+                            <input type="password" id="reg-password" class="mt-1 block w-full px-3 py-2 border 
+border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
                             <button type="button" id="reg-toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
                                 <i id="reg-toggle-icon" data-lucide="eye-off" class="h-5 w-5"></i>
-                            </button>
+                     
+        </button>
                         </div>
                     </div>
                     <button type="submit" id="register-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">ลงทะเบียน (Sign Up)</button>
-                </form>
+               
+ </form>
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">มีบัญชีอยู่แล้ว?
-                        <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-login')">เข้าสู่ระบบที่นี่</span>
+ <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-login')">เข้าสู่ระบบที่นี่</span>
                     </p>
                     <p class="text-sm text-gray-600 mt-2">หรือ 
                         <span class="font-medium text-green-600 hover:text-green-500 cursor-pointer" onclick="window.showPage('page-add-point')">เติมคะแนน</span>
                     </p>
-                </div>
+  
+               </div>
             </div>
         </div>
         
         <div id="page-login" class="page">
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">เข้าสู่ระบบ</h2>
-                <form id="login-form" class="space-y-4">
+        
+         <form id="login-form" class="space-y-4">
                     <div>
                         <label for="login-email" class="block text-sm font-medium text-gray-700">อีเมล (Email)</label>
                         <input type="email" id="login-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+ 
                     </div>
                     <div>
                         <label for="login-password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
                         <div class="relative">
-                            <input type="password" id="login-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+       
+                      <input type="password" id="login-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
                             <button type="button" id="login-toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
-                                <i id="login-toggle-icon" data-lucide="eye-off" class="h-5 w-5"></i>
+                           
+       <i id="login-toggle-icon" data-lucide="eye-off" class="h-5 w-5"></i>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" id="login-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">เข้าสู่ระบบ (Login)</button>
+                   
+  <button type="submit" id="login-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">เข้าสู่ระบบ (Login)</button>
                 </form>
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">ยังไม่มีบัญชี?
-                        <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-register')">สมัครสมาชิก</span>
+ <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-register')">สมัครสมาชิก</span>
                     </p>
                 </div>
             </div>
@@ -142,94 +167,115 @@
 
         <div id="page-novels-center" class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Novels Center</h2>
-            <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-center">
+            
+ <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-center">
                 <input type="text" placeholder="ค้นหาชื่อเรื่อง..." class="flex-grow px-3 py-2 border border-gray-300 rounded-md min-w-[200px]">
                 <select class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                     <option value="">สถานะทั้งหมด</option>
                     <option value="Ongoing">Ongoing</option>
+  
                     <option value="Complete">Complete</option>
                     <option value="Coming Soon">Coming Soon</option>
                     <option value="Other">Other</option>
                 </select>
-                <select class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
+                <select class="px-3 py-2 border border-gray-300 
+rounded-md text-gray-500">
                     <option value="">ประเภททั้งหมด</option>
                     <option value="Fantasy">Fantasy</option>
                     <option value="Romance">Romance</option>
                     <option value="Drama">Drama</option>
-                </select>
+               
+  </select>
                 <button class="bg-purple-600 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700">ค้นหา</button>
             </div>
             
             <div>
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Korean Novels (KR)</h3>
-                <div id="novel-container-kr" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+               
+  <div id="novel-container-kr" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-kr" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Chinese Novels (CN)</h3>
                 <div id="novel-container-cn" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                    <p id="novel-loading-cn" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
+   
+                  <p id="novel-loading-cn" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">English Novels (EN)</h3>
                 <div id="novel-container-en" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-                    <p id="novel-loading-en" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
+               
+      <p id="novel-loading-en" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Japanese Novels (JP)</h3>
                 <div id="novel-container-jp" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-jp" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
-                </div>
+    
+             </div>
             </div>
             
             <div class="flex justify-center items-center space-x-2 mt-8">
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt; Previous</button>
+                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt;
+ Previous</button>
                 <button class="px-3 py-1 border rounded-md bg-purple-600 text-white">1</button>
                 <button class="px-3 py-1 border rounded-md bg-white text-gray-600">2</button>
                 <button class="px-3 py-1 border rounded-md bg-white text-gray-600">3</button>
                 <span class="text-gray-600">...</span>
-                <button class="px-3 py-1 border rounded-md bg-white text-gray-600">Next &gt;&gt;</button>
+                <button 
+class="px-3 py-1 border rounded-md bg-white text-gray-600">Next &gt;&gt;</button>
             </div>
         </div>
         
         <div id="page-novel-detail" class="page">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <div class="flex flex-col md:flex-row gap-6">
-                    <div class="w-full md:w-1/3 lg:w-1/4">
+                   
+  <div class="w-full md:w-1/3 lg:w-1/4">
                         <img id="detail-cover-img" src="https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading..." alt="Novel Cover" class="w-full rounded-lg shadow-md">
                         <button id="detail-like-btn" onclick="window.toggleNovelLike()" class="mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-pink-200 transition-colors">
-                            <i data-lucide="heart"></i>
+                           
+  <i data-lucide="heart"></i>
                             <span>Like (...)</span>
                         </button>
                     </div>
                     <div class="w-full md:w-2/3 lg:w-3/4">
-                        <h2 id="detail-title-en" class="text-3xl font-bold text-purple-800">กำลังโหลดชื่อเรื่อง...</h2>
+  
+                       <h2 id="detail-title-en" class="text-3xl font-bold text-purple-800">กำลังโหลดชื่อเรื่อง...</h2>
                         <h3 id="detail-title-th" class="text-xl text-gray-600 mb-2">...</h3>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-gray-500 mb-4">
-                            <span>ผู้แต่ง: <span id="detail-author" class="font-medium text-gray-700">...</span></span>
+                
+              <span>ผู้แต่ง: <span id="detail-author" class="font-medium text-gray-700">...</span></span>
                             <span>ภาษา: <span id="detail-language" class="font-medium text-gray-700">...</span></span>
                             <span>สถานะ: <span id="detail-status" class="font-medium text-gray-700">...</span></span>
-                            <span>จำนวน: <span id="detail-chapters-count" class="font-medium text-gray-700">...</span></span>
+                    
+          <span>จำนวน: <span id="detail-chapters-count" class="font-medium text-gray-700">...</span></span>
                         </div>
                         <div id="detail-categories" class="flex flex-wrap gap-2 mb-4">
-                            <span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full animate-pulse">...</span>
+                            <span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full 
+animate-pulse">...</span>
                         </div>
                         <div id="detail-description" class="text-gray-600 novel-content mb-4">
                             <p>กำลังโหลดเรื่องย่อ...</p>
-                        </div>
+                    
+      </div>
                         <h4 class="text-lg font-semibold text-purple-700 mb-2">ผลงานอื่นของผู้แต่ง</h4>
                         <div id="detail-other-works" class="flex space-x-3 overflow-x-auto pb-2">
                             </div>
-                    </div>
+           
+          </div>
                 </div>
                 
                 <div class="mt-8">
                     <h3 class="text-2xl font-bold text-purple-700 mb-4">สารบัญนิยาย</h3>
-                    <div class="border rounded-lg overflow-hidden">
+                  
+    <div class="border rounded-lg overflow-hidden">
                         <div class="flex justify-between items-center bg-gray-100 p-3 font-semibold">
                             <span class="text-gray-700">ชื่อตอน</span>
                             <span class="text-gray-700">ค่าอ่าน</span>
-                        </div>
+       
+                  </div>
                         <div id="detail-chapter-list-container" class="max-h-[400px] overflow-y-auto divide-y">
                             <div class="p-3 text-gray-500">กำลังโหลดสารบัญ...</div>
                         </div>
+ 
                     </div>
                 </div>
             </div>
@@ -237,36 +283,42 @@
         
         <div id="page-reader" class="page">
             <div class="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-lg">
-                <div class="mb-8">
-                    <h2 id="reader-title" class="text-3xl font-bold text-center text-purple-800 mb-2">กำลังโหลด...</h2>
-                    <h3 id="reader-chapter-title" class="text-xl text-center text-gray-600 mb-6">...</h3>
-                    <div id="reader-content-div" class="novel-content text-gray-800">
-                        <p>กำลังโหลดเนื้อหา...</p>
-                    </div>
+        
+                <div class="mb-8 border-b border-gray-200 pb-4"> <h2 id="reader-title" class="text-3xl font-bold text-center text-purple-800 mb-2">กำลังโหลด...</h2>
+                    <h3 id="reader-chapter-title" class="text-xl text-center text-gray-600">...</h3> </div>
+                    
+                <div id="reader-content-div" class="novel-content text-gray-800 pt-4 mb-8"> <p>กำลังโหลดเนื้อหา...</p>
                 </div>
         
+                <div id="reader-navigation-buttons" class="flex justify-between border-t-2 border-purple-100 pt-6">
+                    </div>
                 <div class="border-t-2 border-purple-100 pt-6">
                     <h4 class="text-2xl font-bold text-purple-700 mb-4">Comments</h4>
-                    <div id="comment-input-box" class="mb-6">
+      
+               <div id="comment-input-box" class="mb-6">
                         <div class="flex items-center space-x-2 mb-2">
                             <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=Me" class="rounded-full">
-                            <span id="reader-comment-username" class="font-semibold">...</span>
+                          
+        <span id="reader-comment-username" class="font-semibold">...</span>
                         </div>
                         <textarea id="reader-comment-input" class="w-full p-2 border border-gray-300 rounded-md" rows="3" placeholder="แสดงความคิดเห็น..."></textarea>
                         <button id="reader-comment-post-btn" class="mt-2 bg-purple-600 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700">Post Comment</button>
-                    </div>
+      
+               </div>
                     <div id="reader-comment-container" class="space-y-4">
                         </div>
                 </div>
             </div>
         </div>
-        
+    
+     
         <div id="page-admin-notifications" class="page">
             <div class="max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-purple-700 mb-6">คอมเมนต์ที่ยังไม่อ่าน</h2>
                 <div id="admin-notify-container" class="space-y-4">
                     <p>กำลังโหลด...</p>
-                </div>
+         
+        </div>
             </div>
         </div>
 
@@ -274,218 +326,278 @@
             <div class="max-w-md mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
                 <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">เติมคะแนน</h2>
                 <form class="space-y-4">
-                    <div>
+      
+               <div>
                         <label for="point-username" class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้งาน (Username)</label>
                         <input type="text" id="point-username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100" placeholder="กรุณาเข้าสู่ระบบ" readonly>
-                    </div>
+                  
+    </div>
                     <div>
                         <label for="point-amount" class="block text-sm font-medium text-gray-700">เลือกจำนวนเงิน</label>
                         <select id="point-amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
-                            <option value="25">25 บาท (250 + 5 Points)</option>
+            
+                        <option value="25">25 บาท (250 + 5 Points)</option>
                             <option value="50">50 บาท (500 + 15 Points)</option>
                             <option value="75">75 บาท (750 + 20 Points)</option>
-                            <option value="100">100 บาท (1000 + 25 Points)</option>
+          
+                        <option value="100">100 บาท (1000 + 25 Points)</option>
                             <option value="150">150 บาท (1500 + 30 Points)</option>
                         </select>
-                    </div>
+                  
+    </div>
                     <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors" onclick="alert('TODO: เชื่อมต่อ Stripe')">
                         ไปที่หน้าชำระเงิน (Stripe)
                     </button>
                 </form>
-                <div class="mt-6 text-center">
+   
+               <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">ยังไม่มีบัญชี?
-                        <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-register')">สมัครสมาชิก</span>
+ <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-register')">สมัครสมาชิก</span>
                     </p>
                 </div>
             </div>
         </div>
         
         <div id="page-admin-add-novel" class="page p-4 md:p-0">
-            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl 
+mx-auto">
                 <h2 class="text-2xl font-bold text-purple-700 mb-4">Admin: จัดการนิยาย</h2>
                 <div class="flex space-x-2 mb-6">
                     <button id="admin-tab-add-novel" onclick="window.setAdminNovelMode('add')" class="px-4 py-2 bg-purple-600 text-white rounded-lg">เพิ่ม/แก้ไข นิยาย</button>
                     <button onclick="window.showPage('page-admin-add-chapter')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">เพิ่ม/แก้ไข ตอน</button>
-                </div>
+    
+             </div>
                 
                 <div id="admin-novel-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
                     <label for="edit-novel-select" class="block text-sm font-medium text-gray-700">เลือกนิยายที่จะแก้ไข</label>
                     <div class="flex space-x-2 mt-1">
+ 
                         <select id="edit-novel-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                             <option value="">(กำลังโหลดนิยาย...)</option>
                         </select>
-                        <button type="button" id="load-novel-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">Load</button>
+               
+          <button type="button" id="load-novel-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">Load</button>
                     </div>
                 </div>
 
                 <h3 id="admin-novel-form-title" class="text-xl font-semibold text-purple-700 mb-4">เพิ่มนิยายใหม่</h3>
                 
-                <form id="add-novel-form" class="space-y-4">
+         
+        <form id="add-novel-form" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" id="novel-cover-url" placeholder="ลิงค์รูปหน้าปก (URL)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
-                        <input type="text" id="novel-title-en" placeholder="ชื่อเรื่องภาษาอังกฤษ" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                        <input type="text" id="novel-title-en" placeholder="ชื่อเรื่องภาษาอังกฤษ" class="w-full px-3 py-2 border 
+border-gray-300 rounded-md" required>
                         <input type="text" id="novel-title-th" placeholder="ชื่อเรื่องภาษาไทย" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                         <input type="text" id="novel-title-original" placeholder="ชื่อเรื่องภาษาต้นฉบับ" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                         
+        
                         <input type="text" id="novel-author" list="author-datalist" placeholder="ผู้แต่ง (เลือกจากรายการหรือพิมพ์ใหม่)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <datalist id="author-datalist"></datalist> 
                         
-                        <select id="novel-language" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
+                      
+          <select id="novel-language" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
                             <option value="">เลือกภาษาต้นฉบับ</option>
                             <option value="EN">EN</option>
                             <option value="JP">JP</option>
+  
                             <option value="KR">KR</option>
                             <option value="CN">CN</option>
                         </select>
-                        <select id="novel-status" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
+                    
+          <select id="novel-status" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
                             <option value="">เลือกสถานะ</option>
                             <option value="Ongoing">Ongoing</option>
-                            <option value="Complete">Complete</option>
+                            <option 
+value="Complete">Complete</option>
                             <option value="Coming Soon">Coming Soon</option>
                             <option value="Other">Other</option>
                         </select>
-                        <div class="flex items-center justify-center p-2 border border-gray-300 rounded-md">
+                
+         <div class="flex items-center justify-center p-2 border border-gray-300 rounded-md">
                             <input type="checkbox" id="novel-licensed" class="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
                             <label for="novel-licensed" class="ml-2 block text-sm font-medium text-gray-700">เป็นนิยายลิขสิทธิ์ (Licensed)</label>
-                        </div>
+              
+          </div>
                     </div>
                     
                     <div class="border border-gray-300 rounded-md p-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">ประเภท (เลือกได้หลายข้อ)</label>
+                        <label class="block 
+text-sm font-medium text-gray-700 mb-2">ประเภท (เลือกได้หลายข้อ)</label>
                         <div id="novel-categories-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Action" class="novel-category-check"> <span>Action</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Adult" class="novel-category-check"> <span>Adult</span></label>
+                            <label class="flex items-center 
+space-x-2"><input type="checkbox" value="Adult" class="novel-category-check"> <span>Adult</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Adventure" class="novel-category-check"> <span>Adventure</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Comedy" class="novel-category-check"> <span>Comedy</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Drama" class="novel-category-check"> <span>Drama</span></label>
+                          
+          <label class="flex items-center space-x-2"><input type="checkbox" value="Drama" class="novel-category-check"> <span>Drama</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Fantasy" class="novel-category-check"> <span>Fantasy</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Josei" class="novel-category-check"> <span>Josei</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Mature" class="novel-category-check"> <span>Mature</span></label>
+                     
+                <label class="flex items-center space-x-2"><input type="checkbox" value="Mature" class="novel-category-check"> <span>Mature</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Romance" class="novel-category-check"> <span>Romance</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Slice of Life" class="novel-category-check"> <span>Slice of Life</span></label>
-                            <label class="flex items-center space-x-2"><input type="checkbox" value="Smut" class="novel-category-check"> <span>Smut</span></label>
+            
+                 <label class="flex items-center space-x-2"><input type="checkbox" value="Smut" class="novel-category-check"> <span>Smut</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Tragedy" class="novel-category-check"> <span>Tragedy</span></label>
                         </div>
-                    </div>
+                  
+    </div>
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">เรื่องย่อ (Description)</label>
                         <div class="border border-gray-300 rounded-md">
+ 
                             <div class="flex flex-wrap items-center gap-1 p-2 bg-gray-100 border-b rounded-t-md">
                                 <button type="button" onclick="window.formatDoc('undo', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Undo"><i data-lucide="undo-2" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('redo', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Redo"><i data-lucide="redo-2" class="w-4 h-4"></i></button>
+                       
+          <button type="button" onclick="window.formatDoc('redo', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Redo"><i data-lucide="redo-2" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('bold', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Bold"><i data-lucide="bold" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('italic', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="window.formatDoc('italic', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" 
+title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('underline', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Underline"><i data-lucide="underline" class="w-4 h-4"></i></button>
                                 <input type="color" title="Text Color" onchange="window.formatDoc('foreColor', 'novel-description-editor', this.value)" class="toolbar-color-picker w-7 h-7 p-0 m-0.5 align-middle">
-                                <button type="button" onclick="window.formatDoc('justifyLeft', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
+           
+                      <button type="button" onclick="window.formatDoc('justifyLeft', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyCenter', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Center"><i data-lucide="align-center" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('justifyRight', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
+                         
+                <button type="button" onclick="window.formatDoc('justifyRight', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertOrderedList', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Ordered List"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('insertUnorderedList', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Unordered List"><i data-lucide="list" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="window.formatDoc('insertUnorderedList', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" 
+title="Unordered List"><i data-lucide="list" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertHorizontalRule', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Horizontal Line"><i data-lucide="minus" class="w-4 h-4"></i></button>
                             </div>
-                            <div id="novel-description-editor" contenteditable="true" class="w-full h-40 p-2 novel-content focus:outline-none" data-placeholder="ใส่เรื่องย่อ..."></div>
+                         
+    <div id="novel-description-editor" contenteditable="true" class="w-full h-40 p-2 novel-content focus:outline-none" data-placeholder="ใส่เรื่องย่อ..."></div>
                         </div>
                     </div>
                     
                     <div class="flex justify-end space-x-3 pt-4">
+ 
                         <button type="button" onclick="window.setAdminNovelMode('add')" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center space-x-2">
                             <i data-lucide="file-plus"></i>
                             <span>Clear (Add New)</span>
-                        </button>
+       
+                  </button>
                         <button type="submit" class="px-5 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center space-x-2">
                             <i data-lucide="save"></i>
-                            <span id="admin-novel-save-btn-text">Save New</span>
+                   
+          <span id="admin-novel-save-btn-text">Save New</span>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     
-        <div id="page-admin-add-chapter" class="page p-4 md:p-0">
+     
+    <div id="page-admin-add-chapter" class="page p-4 md:p-0">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
                 <h2 class="text-2xl font-bold text-purple-700 mb-4">Admin: จัดการตอน</h2>
                 <div class="flex space-x-2 mb-6">
                     <button onclick="window.showPage('page-admin-add-novel')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">เพิ่ม/แก้ไข นิยาย</button>
-                    <button id="admin-tab-add-chapter" onclick="window.setAdminChapterMode('add')" class="px-4 py-2 bg-purple-600 text-white rounded-lg">เพิ่ม/แก้ไข ตอน</button>
+      
+               <button id="admin-tab-add-chapter" onclick="window.setAdminChapterMode('add')" class="px-4 py-2 bg-purple-600 text-white rounded-lg">เพิ่ม/แก้ไข ตอน</button>
                 </div>
                 
                 <div id="admin-chapter-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50 space-y-2">
                     <div>
-                        <label for="edit-chapter-novel-select" class="block text-sm font-medium text-gray-700">1. เลือกนิยาย</label>
+  
+                       <label for="edit-chapter-novel-select" class="block text-sm font-medium text-gray-700">1.
+เลือกนิยาย</label>
                         <select id="edit-chapter-novel-select" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                             <option value="">(กำลังโหลดนิยาย...)</option>
                         </select>
-                    </div>
+              
+          </div>
                     <div>
-                        <label for="edit-chapter-select" class="block text-sm font-medium text-gray-700">2. เลือกตอนที่จะแก้ไข</label>
+                        <label for="edit-chapter-select" class="block text-sm font-medium text-gray-700">2.
+เลือกตอนที่จะแก้ไข</label>
                         <div class="flex space-x-2 mt-1">
                             <select id="edit-chapter-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" disabled>
                                 <option value="">(กรุณาเลือกนิยายก่อน)</option>
-                            </select>
+  
+                           </select>
                             <button type="button" id="load-chapter-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600" disabled>Load</button>
                         </div>
-                    </div>
+            
+          </div>
                 </div>
 
                 <h3 id="admin-chapter-form-title" class="text-xl font-semibold text-purple-700 mb-4">เพิ่มตอนใหม่</h3>
 
                 <form id="add-chapter-form" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+             
                         <select id="chapter-novel-select" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
                             <option value="">เลือกนิยาย (กำลังโหลด...)</option>
                         </select>
-                        <input type="number" id="chapter-number" step="0.1" placeholder="ตอนที่ (เช่น 1, 2.5, 10)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                        <input type="number" 
+id="chapter-number" step="0.1" placeholder="ตอนที่ (เช่น 1, 2.5, 10)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <input type="text" id="chapter-title" placeholder="ชื่อตอน (เช่น บทที่ 1: การเริ่มต้น)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <select id="chapter-point-type" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
-                            <option value="">เลือกประเภท/สี</option>
+                
+                        <option value="">เลือกประเภท/สี</option>
                             <option value="0">0 Points (เทา - อ่านฟรี)</option>
                             <option value="5">5 Points (ฟ้าอ่อน - ธรรมดา)</option>
-                            <option value="10">10 Points (ฟ้าเข้ม - ธรรมดา)</option>
+                     
+                <option value="10">10 Points (ฟ้าเข้ม - ธรรมดา)</option>
                             <option value="15-Side">15 Points (เขียว - Side Story)</option>
                             <option value="15-Special">15 Points (ชมพู - Special)</option>
-                            <option value="15-Extra">15 Points (ส้ม - Extra)</option>
+                     
+                        <option value="15-Extra">15 Points (ส้ม - Extra)</option>
                             <option value="20">20 Points (แดง - NC)</option>
                         </select>
-                        <input type="datetime-local" id="chapter-schedule" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" title="ตั้งเวลา (ปล่อยว่างคือเผยแพร่ทันที)">
+                        <input type="datetime-local" id="chapter-schedule" class="w-full px-3 py-2 border 
+border-gray-300 rounded-md text-gray-500" title="ตั้งเวลา (ปล่อยว่างคือเผยแพร่ทันที)">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">เนื้อหานิยาย (Content)</label>
-                        <div class="border border-gray-300 rounded-md">
+                        <div class="border 
+border-gray-300 rounded-md">
                             <div class="flex flex-wrap items-center gap-1 p-2 bg-gray-100 border-b rounded-t-md">
                                 <button type="button" onclick="window.formatDoc('undo', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Undo"><i data-lucide="undo-2" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('redo', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Redo"><i data-lucide="redo-2" class="w-4 h-4"></i></button>
+                     
+                            <button type="button" onclick="window.formatDoc('redo', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Redo"><i data-lucide="redo-2" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('bold', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Bold"><i data-lucide="bold" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('italic', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="window.formatDoc('italic', 'chapter-content-editor')" class="p-1.5 
+hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('underline', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Underline"><i data-lucide="underline" class="w-4 h-4"></i></button>
                                 <input type="color" title="Text Color" onchange="window.formatDoc('foreColor', 'chapter-content-editor', this.value)" class="toolbar-color-picker w-7 h-7 p-0 m-0.5 align-middle">
-                                <button type="button" onclick="window.formatDoc('justifyLeft', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
+         
+                            <button type="button" onclick="window.formatDoc('justifyLeft', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyCenter', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Center"><i data-lucide="align-center" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('justifyRight', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
+                       
+                        <button type="button" onclick="window.formatDoc('justifyRight', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertOrderedList', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Ordered List"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="window.formatDoc('insertUnorderedList', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Unordered List"><i data-lucide="list" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="window.formatDoc('insertUnorderedList', 'chapter-content-editor')" class="p-1.5 
+hover:bg-gray-200 rounded" title="Unordered List"><i data-lucide="list" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertHorizontalRule', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Horizontal Line"><i data-lucide="minus" class="w-4 h-4"></i></button>
                             </div>
-                            <div id="chapter-content-editor" contenteditable="true" class="w-full h-80 p-2 novel-content focus:outline-none" data-placeholder="ใส่เนื้อหานิยาย..."></div>
+                       
+          <div id="chapter-content-editor" contenteditable="true" class="w-full h-80 p-2 novel-content focus:outline-none" data-placeholder="ใส่เนื้อหานิยาย..."></div>
                         </div>
                     </div>
                     
-                    <div class="flex justify-end space-x-3 pt-4">
+                    <div class="flex justify-end 
+space-x-3 pt-4">
                         <button type="button" onclick="window.setAdminChapterMode('add')" class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center space-x-2">
                             <i data-lucide="file-plus"></i>
                             <span>Clear (Add New)</span>
-                        </button>
+     
+                    </button>
                         <button type="submit" class="px-5 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center space-x-2">
                             <i data-lucide="save"></i>
-                            <span id="admin-chapter-save-btn-text">Save New</span>
+                 
+            <span id="admin-chapter-save-btn-text">Save New</span>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div id="page-coffee" class="page">
+       
+  <div id="page-coffee" class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Coffee</h2>
             <p>หน้านี้สำหรับรับการสนับสนุน (Donate) ... (TODO)</p>
         </div>
@@ -493,7 +605,8 @@
             <h2 class="text-3xl font-bold text-purple-700 mb-6">About Us</h2>
             <p>เกี่ยวกับเรา... (TODO)</p>
         </div>
-        <div id="page-contact" class="page">
+        <div id="page-contact" 
+class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Contact Us</h2>
             <p>ติดต่อเรา... (TODO)</p>
         </div>
@@ -505,7 +618,8 @@
     </footer>
 
     <nav id="main-nav-mobile" class="fixed bottom-0 left-0 right-0 h-16 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:hidden flex justify-around items-center z-50">
-        <a href="#" class="flex flex-col items-center text-gray-500 hover:text-purple-600" onclick="window.showPage('page-home')">
+        <a href="#" class="flex flex-col items-center text-gray-500 
+hover:text-purple-600" onclick="window.showPage('page-home')">
             <i data-lucide="home"></i>
             <span class="text-xs">Home</span>
         </a>
@@ -514,6 +628,7 @@
             <span class="text-xs">Novels</span>
         </a>
         <a href="#" class="flex flex-col items-center text-gray-500 hover:text-purple-600" onclick="window.showPage('page-coffee')">
+ 
             <i data-lucide="coffee"></i>
             <span class="text-xs">Coffee</span>
         </a>
@@ -522,7 +637,8 @@
             <span class="text-xs">About Us</span>
         </a>
         <a href="#" class="flex flex-col items-center text-gray-500 hover:text-purple-600" onclick="window.showPage('page-contact')">
-            <i data-lucide="mail"></i>
+  
+           <i data-lucide="mail"></i>
             <span class="text-xs">Contact Us</span>
         </a>
     </nav>
@@ -533,7 +649,8 @@
     
     <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-[60] justify-center items-center p-4" onclick="window.closeImageModal()">
         <div class="relative">
-            <img id="image-modal-content" src="" class="max-h-[85vh] max-w-full rounded-lg shadow-2xl border-4 border-white">
+            <img id="image-modal-content" src="" class="max-h-[85vh] 
+max-w-full rounded-lg shadow-2xl border-4 border-white">
             <button class="absolute -top-4 -right-4 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg" onclick="window.closeImageModal()">
                 <i data-lucide="x"></i>
             </button>
@@ -543,17 +660,18 @@
     <script>
         // Global wrapper for scrollToTop
         window.scrollToTop = function() {
-            document.body.scrollTop = 0;
+      
+        document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
-        }
+}
         
         window.onscroll = function() {
             const scrollTopBtn = document.getElementById('scrollTopBtn');
-            if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+ if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
                 scrollTopBtn.style.display = "flex";
-            } else {
+ } else {
                 scrollTopBtn.style.display = "none";
-            }
+ }
         };
     </script>
     
