@@ -19,7 +19,8 @@ import {
     where,
     updateDoc,
     deleteDoc, 
-    increment 
+    increment,
+    arrayUnion // <-- เพิ่มคำสั่งนี้มาใหม่เพื่อเก็บรายการตอนที่ซื้อ
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 // ============================================================
@@ -280,7 +281,6 @@ window.loadAdminTopupRequests = async function() {
     container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
     
     try {
-        // ดึงข้อมูลที่สถานะเป็น 'pending'
         const q = query(collection(db, "topup_requests"), where("status", "==", "pending"));
         const querySnapshot = await getDocs(q);
         
@@ -289,7 +289,6 @@ window.loadAdminTopupRequests = async function() {
             requests.push({ id: doc.id, ...doc.data() });
         });
 
-        // เรียงตามวันที่แจ้ง (เก่าสุดอยู่บน จะได้ตรวจตามคิว)
         requests.sort((a, b) => a.createdAt - b.createdAt);
         
         container.innerHTML = '';
@@ -337,20 +336,18 @@ window.approveTopup = async function(reqId, userId, points, username) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                // 1. อัปเดตสถานะคำขอเป็น completed
                 await updateDoc(doc(db, "topup_requests", reqId), {
                     status: 'completed',
                     approvedAt: Timestamp.now()
                 });
 
-                // 2. เพิ่ม Points ให้ User
                 await updateDoc(doc(db, "users", userId), {
                     balancePoints: increment(points)
                 });
 
                 Swal.fire('สำเร็จ!', 'เติม Points เรียบร้อยแล้ว', 'success');
-                window.loadAdminTopupRequests(); // รีโหลดตาราง
-                checkAdminNotifications(); // อัปเดตตัวเลขแจ้งเตือน
+                window.loadAdminTopupRequests();
+                checkAdminNotifications();
             } catch (error) {
                 console.error("Error approving topup:", error);
                 Swal.fire('Error', 'เกิดข้อผิดพลาดในการอนุมัติ', 'error');
@@ -384,206 +381,6 @@ window.rejectTopup = async function(reqId) {
             }
         }
     });
-}
-
-async function loadNovels() {
-    if (!db) return;
-    const containers = {
-        'KR': document.getElementById('novel-container-kr'),
-        'CN': document.getElementById('novel-container-cn'),
-        'EN': document.getElementById('novel-container-en'),
-        'JP': document.getElementById('novel-container-jp')
-    };
-    ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-        if(containers[lang]) containers[lang].innerHTML = ''; 
-        const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-        if (loadingText) loadingText.style.display = 'block'; 
-    });
-    const homeUpdatesContainer = document.getElementById('home-latest-updates');
-    if(homeUpdatesContainer) homeUpdatesContainer.innerHTML = ''; 
-    
-    try {
-        const querySnapshot = await getDocs(collection(db, "novels"));
-        novelCache = []; 
-        let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
-        const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-        let allNovels = [];
-        querySnapshot.forEach((doc) => {
-            allNovels.push({ id: doc.id, ...doc.data() });
-        });
-        allNovels.sort((a, b) => {
-            const timeA = a.lastChapterUpdatedAt ? a.lastChapterUpdatedAt.toDate().getTime() : 0;
-            const timeB = b.lastChapterUpdatedAt ? b.lastChapterUpdatedAt.toDate().getTime() : 0;
-            return timeB - timeA;
-        });
-        allNovels.forEach(novel => {
-            const novelId = novel.id;
-            novelCache.push(novel); 
-            const lang = novel.language.toUpperCase(); 
-            if (containers[lang]) {
-                novelCount[lang]++;
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
-                card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
-                let licensedBadge = '';
-                if (novel.isLicensed) {
-                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
-                }
-                let newBadge = '';
-                let isNew = false;
-                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > threeDaysAgo) {
-                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
-                    isNew = true;
-                }
-                card.innerHTML = `
-                    <div class="relative">
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
-                        ${licensedBadge}
-                        ${newBadge}
-                    </div>
-                    <div class="p-3">
-                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
-                    </div>
-                `;
-                containers[lang].appendChild(card);
-                if (isNew && homeUpdatesContainer && homeUpdatesContainer.childElementCount < 5) {
-                     const homeCard = document.createElement('div');
-                     homeCard.className = "flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer";
-                     homeCard.onclick = () => window.showNovelDetail(novelId, novel.status);
-                     homeCard.innerHTML = `
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-12 h-16 object-cover rounded">
-                        <div>
-                            <h5 class="font-semibold text-purple-700">${novel.title_en}</h5>
-                            <p class="text-sm text-gray-500">${novel.author}</p>
-                        </div>
-                     `;
-                     homeUpdatesContainer.appendChild(homeCard);
-                }
-            }
-        });
-        ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-            const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-            if (loadingText) loadingText.style.display = 'none'; 
-            if (novelCount[lang] === 0 && containers[lang]) {
-                containers[lang].innerHTML = '<p class="text-gray-500 col-span-full">ยังไม่มีนิยายในหมวดนี้...</p>';
-            }
-        });
-        if (homeUpdatesContainer && homeUpdatesContainer.childElementCount === 0) {
-            homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>';
-        }
-    } catch (error) {
-        console.error("Error loading novels: ", error);
-        ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
-            if(containers[lang]) containers[lang].innerHTML = '<p class="text-red-500 col-span-full">ไม่สามารถโหลดนิยายได้</p>';
-            const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
-            if (loadingText) loadingText.style.display = 'none';
-        });
-    }
-}
-
-// --- New Function: Filter Novels ---
-window.filterNovels = function() {
-    const searchText = document.getElementById('search-input').value.toLowerCase();
-    const statusFilter = document.getElementById('filter-status').value;
-    const categoryFilter = document.getElementById('filter-category').value;
-
-    const containers = {
-        'KR': document.getElementById('novel-container-kr'),
-        'CN': document.getElementById('novel-container-cn'),
-        'EN': document.getElementById('novel-container-en'),
-        'JP': document.getElementById('novel-container-jp')
-    };
-
-    // Clear all containers first
-    for(let key in containers) {
-        if(containers[key]) containers[key].innerHTML = '';
-    }
-
-    const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-    let hasResults = { 'KR': false, 'CN': false, 'EN': false, 'JP': false };
-
-    novelCache.forEach(novel => {
-        // Filter Logic
-        const matchText = novel.title_en.toLowerCase().includes(searchText) || 
-                          (novel.title_th && novel.title_th.includes(searchText));
-        const matchStatus = statusFilter === "" || novel.status === statusFilter;
-        const matchCategory = categoryFilter === "" || (novel.categories && novel.categories.includes(categoryFilter));
-
-        if (matchText && matchStatus && matchCategory) {
-            const lang = novel.language.toUpperCase();
-            if (containers[lang]) {
-                hasResults[lang] = true;
-
-                // Render Card
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
-                card.setAttribute('onclick', `window.showNovelDetail('${novel.id}', '${novel.status}')`); 
-                
-                let licensedBadge = '';
-                if (novel.isLicensed) {
-                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
-                }
-                let newBadge = '';
-                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > threeDaysAgo) {
-                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
-                }
-
-                card.innerHTML = `
-                    <div class="relative">
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
-                        ${licensedBadge}
-                        ${newBadge}
-                    </div>
-                    <div class="p-3">
-                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
-                    </div>
-                `;
-                containers[lang].appendChild(card);
-            }
-        }
-    });
-
-    // Show "Not Found" message if empty
-    for(let key in containers) {
-        if(!hasResults[key] && containers[key]) {
-            containers[key].innerHTML = '<p class="text-gray-400 col-span-full">ไม่พบนิยายที่ค้นหา...</p>';
-        }
-    }
-}
-
-async function checkAdminNotifications() {
-    if (!db || !currentUserData || currentUserData.role !== 'admin') {
-        return;
-    }
-    const commentBadge = document.getElementById('admin-notify-badge');
-    const topupBadge = document.getElementById('admin-topup-badge');
-    
-    try {
-        // Check Comments
-        const qComment = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
-        const snapComment = await getDocs(qComment);
-        const commentCount = snapComment.size;
-        if (commentCount > 0) {
-            commentBadge.textContent = commentCount > 9 ? '9+' : commentCount;
-            commentBadge.classList.remove('hidden');
-        } else {
-            commentBadge.classList.add('hidden');
-        }
-
-        // Check Pending Topups
-        const qTopup = query(collection(db, "topup_requests"), where("status", "==", "pending"));
-        const snapTopup = await getDocs(qTopup);
-        const topupCount = snapTopup.size;
-        if (topupCount > 0) {
-            topupBadge.textContent = topupCount > 9 ? '9+' : topupCount;
-            topupBadge.classList.remove('hidden');
-        } else {
-            topupBadge.classList.add('hidden');
-        }
-
-    } catch (error) {
-        console.error("Error checking admin notifications:", error);
-    }
 }
 
 async function loadAuthorOtherWorks(authorName, currentId) {
@@ -720,7 +517,13 @@ async function loadNovelDetails(novelId) {
     }
 }
 
-function getChapterBadge(pointCost, type) {
+// ปรับปรุงฟังก์ชันแสดงป้ายราคา เพื่อให้รองรับสถานะ "ซื้อแล้ว"
+function getChapterBadge(pointCost, type, isUnlocked) {
+    // ถ้าปลดล็อกแล้ว ให้แสดงป้ายสีเขียว
+    if (isUnlocked) {
+        return `<span class="text-sm font-bold px-2 py-1 rounded" style="background-color: #4ade80; color: #065f46; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">ซื้อแล้ว (อ่านเลย)</span>`;
+    }
+
     if (pointCost === 0) return `<span class="text-sm font-medium px-2 py-1 rounded" style="color: #778899; border: 1px solid #778899;">อ่านฟรี</span>`;
     if (pointCost === 5) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #00bfff; color: white;">${pointCost} Points</span>`;
     if (pointCost === 10) return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
@@ -751,13 +554,24 @@ async function loadNovelChapters(novelId) {
             chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">ยังไม่มีตอน...</div>';
             return;
         }
+
+        // ดึงรายการตอนที่ซื้อแล้วของ User ปัจจุบัน
+        let unlockedChapters = [];
+        if (currentUserData && currentUserData.unlockedChapters) {
+            unlockedChapters = currentUserData.unlockedChapters;
+        }
+
         chapters.forEach(chapter => {
             const chapterId = chapter.id;
+            // เช็คว่าตอนนี้นี้อยู่ในลิสต์ที่ซื้อแล้วหรือไม่
+            const isUnlocked = unlockedChapters.includes(chapterId);
+
             const chapterEl = document.createElement('div');
             chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer";
             chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
             const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}</span>`;
-            const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type);
+            // ส่งค่า isUnlocked ไปให้ฟังก์ชันสร้างป้าย
+            const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type, isUnlocked);
             chapterEl.innerHTML = titleSpan + badgeSpan;
             chapterListContainer.appendChild(chapterEl);
         });
@@ -775,7 +589,6 @@ async function loadAndShowNovelDetail(novelId) {
     ]);
 }
 
-// --- Helper: Load Chapters for Navigation ---
 async function loadNovelChapterList(novelId) {
     if (!db || !novelId) return;
     if (currentNovelChapters.length > 0 && currentNovelChapters[0].novelId === novelId) return;
@@ -788,14 +601,12 @@ async function loadNovelChapterList(novelId) {
             currentNovelChapters.push({ id: doc.id, novelId: novelId, ...doc.data() });
         });
         currentNovelChapters.sort((a, b) => a.chapterNumber - b.chapterNumber); 
-        console.log(`Cached ${currentNovelChapters.length} chapters.`);
     } catch (error) {
         console.error("Error caching novel chapters:", error);
         currentNovelChapters = []; 
     }
 }
 
-// --- Helper: Create Navigation Buttons ---
 function createReaderNavigation(currentChapterId) {
     const navButtons = document.getElementById('reader-navigation-buttons');
     if (!navButtons) return;
@@ -999,9 +810,11 @@ window.closeImageModal = function() {
     }
 }
 
+// ปรับปรุงฟังก์ชันอ่านตอน เพื่อเช็คว่าซื้อไปหรือยัง
 window.showReaderPage = function(chapterId, pointCost) {
     console.log(`Attempting to read chapter ${chapterId} with cost ${pointCost}`);
     currentOpenChapterId = chapterId;
+    
     if (!currentUser || !currentUserData) {
         Swal.fire({
             icon: 'info',
@@ -1014,6 +827,15 @@ window.showReaderPage = function(chapterId, pointCost) {
         });
         return;
     }
+
+    // ตรวจสอบว่า User เคยซื้อตอนนี้ไปหรือยัง
+    if (currentUserData.unlockedChapters && currentUserData.unlockedChapters.includes(chapterId)) {
+        // ถ้ามีในรายการแล้ว ให้อ่านเลย ไม่ต้องหักเงิน
+        loadChapterContent(chapterId);
+        return;
+    }
+
+    // ถ้ายังไม่เคยซื้อ ให้เข้าสู่กระบวนการจ่ายเงิน
     if (pointCost === 0) {
         loadChapterContent(chapterId);
     } else {
@@ -1048,10 +870,18 @@ window.showPointAlert = function(chapterId, pointCost) {
             try {
                 const newPoints = currentUserData.balancePoints - pointCost;
                 const userDocRef = doc(db, 'users', currentUser.uid);
+                
+                // อัปเดต 2 อย่าง: หักเงิน และ เพิ่มประวัติการซื้อ
                 await updateDoc(userDocRef, {
-                    balancePoints: newPoints
+                    balancePoints: newPoints,
+                    unlockedChapters: arrayUnion(chapterId) // บันทึกว่าซื้อแล้ว
                 });
+
+                // อัปเดตข้อมูลในหน้าเว็บทันที ไม่ต้องรอรีเฟรช
                 currentUserData.balancePoints = newPoints;
+                if (!currentUserData.unlockedChapters) currentUserData.unlockedChapters = [];
+                currentUserData.unlockedChapters.push(chapterId);
+
                 document.getElementById('user-points').textContent = `${newPoints} Points`;
                 Swal.fire('หัก Point สำเร็จ!', `ระบบหัก ${pointCost} Points. คุณมี ${newPoints} Points`, 'success');
                 loadChapterContent(chapterId);
@@ -1414,7 +1244,8 @@ window.onload = function() {
                         balancePoints: 0,
                         role: 'user', 
                         createdAt: Timestamp.now(),
-                        likedNovels: [] 
+                        likedNovels: [],
+                        unlockedChapters: [] // เริ่มต้นด้วยอาเรย์ว่าง
                     });
                 })
                 .then(() => {
