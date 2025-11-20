@@ -42,8 +42,6 @@ let currentOpenChapterTitle = null;
 let novelCache = [];
 let currentEditingNovelId = null;
 let currentEditingChapterId = null;
-
-// --- Added: Chapter Navigation ---
 let currentNovelChapters = [];
 
 // ============================================================
@@ -356,6 +354,76 @@ async function loadNovels() {
     }
 }
 
+// --- New Function: Filter Novels ---
+window.filterNovels = function() {
+    const searchText = document.getElementById('search-input').value.toLowerCase();
+    const statusFilter = document.getElementById('filter-status').value;
+    const categoryFilter = document.getElementById('filter-category').value;
+
+    const containers = {
+        'KR': document.getElementById('novel-container-kr'),
+        'CN': document.getElementById('novel-container-cn'),
+        'EN': document.getElementById('novel-container-en'),
+        'JP': document.getElementById('novel-container-jp')
+    };
+
+    // Clear all containers first
+    for(let key in containers) {
+        if(containers[key]) containers[key].innerHTML = '';
+    }
+
+    const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
+    let hasResults = { 'KR': false, 'CN': false, 'EN': false, 'JP': false };
+
+    novelCache.forEach(novel => {
+        // Filter Logic
+        const matchText = novel.title_en.toLowerCase().includes(searchText) || 
+                          (novel.title_th && novel.title_th.includes(searchText));
+        const matchStatus = statusFilter === "" || novel.status === statusFilter;
+        const matchCategory = categoryFilter === "" || (novel.categories && novel.categories.includes(categoryFilter));
+
+        if (matchText && matchStatus && matchCategory) {
+            const lang = novel.language.toUpperCase();
+            if (containers[lang]) {
+                hasResults[lang] = true;
+
+                // Render Card
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
+                card.setAttribute('onclick', `window.showNovelDetail('${novel.id}', '${novel.status}')`); 
+                
+                let licensedBadge = '';
+                if (novel.isLicensed) {
+                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
+                }
+                let newBadge = '';
+                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > threeDaysAgo) {
+                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
+                }
+
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
+                        ${licensedBadge}
+                        ${newBadge}
+                    </div>
+                    <div class="p-3">
+                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
+                    </div>
+                `;
+                containers[lang].appendChild(card);
+            }
+        }
+    });
+
+    // Show "Not Found" message if empty
+    for(let key in containers) {
+        if(!hasResults[key] && containers[key]) {
+            containers[key].innerHTML = '<p class="text-gray-400 col-span-full">ไม่พบนิยายที่ค้นหา...</p>';
+        }
+    }
+}
+
 async function checkAdminNotifications() {
     if (!db || !currentUserData || currentUserData.role !== 'admin') {
         return;
@@ -591,10 +659,8 @@ function createReaderNavigation(currentChapterId) {
     if (!navButtons) return;
     
     const currentIndex = currentNovelChapters.findIndex(c => c.id === currentChapterId);
-    
     let prevButton = `<button disabled class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg flex items-center"><i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> ตอนก่อนหน้า</button>`;
     let nextButton = `<button disabled class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg flex items-center">ตอนถัดไป <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></button>`;
-
     if (currentIndex > 0) {
         const prevChapter = currentNovelChapters[currentIndex - 1];
         prevButton = `<button onclick="window.showReaderPage('${prevChapter.id}', ${prevChapter.pointCost})" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center"><i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> ตอนก่อนหน้า</button>`;
@@ -616,7 +682,6 @@ async function loadChapterContent(chapterId) {
     const readerContentDiv = document.getElementById('reader-content-div');
     const navButtons = document.getElementById('reader-navigation-buttons'); 
     if (navButtons) navButtons.innerHTML = '';
-    
     const currentNovel = novelCache.find(n => n.id === currentOpenNovelId);
     readerTitle.textContent = currentNovel ? currentNovel.title_en : 'กำลังโหลด...';
     readerChapterTitle.textContent = '...';
@@ -703,7 +768,7 @@ window.showPage = function(pageId) {
     }
     if (pageId === 'page-admin-add-novel') {
         loadNovelsForDropdown('edit-novel-select');
-        window.setAdminNovelMode('add'); 
+        window.setAdminNovelMode('add');
     }
     if (pageId === 'page-admin-add-chapter') {
         loadNovelsForDropdown('chapter-novel-select'); 
@@ -1054,13 +1119,13 @@ window.onload = function() {
                     await updateDoc(chapterDocRef, chapterData);
                     await updateDoc(parentNovelRef, { lastChapterUpdatedAt: Timestamp.now() });
                     Swal.fire('อัปเดตสำเร็จ!', `ตอน "${chapterData.title}" ถูกอัปเดตแล้ว`, 'success');
-                    window.setAdminChapterMode('add'); 
+                    window.setAdminChapterMode('add');
                 } else {
                     chapterData.createdAt = Timestamp.now();
                     await addDoc(collection(db, 'chapters'), chapterData);
                     await updateDoc(parentNovelRef, { lastChapterUpdatedAt: Timestamp.now() });
                     Swal.fire('เพิ่มตอนใหม่สำเร็จ!', `ตอน "${chapterData.title}" ถูกบันทึกแล้ว`, 'success');
-                    window.setAdminChapterMode('add'); 
+                    window.setAdminChapterMode('add');
                 }
                 loadNovels();
             } catch (error) {
@@ -1104,7 +1169,6 @@ window.onload = function() {
     }
     const commentBtn = document.getElementById('reader-comment-post-btn');
     if(commentBtn) commentBtn.addEventListener('click', saveComment);
-
     const registerForm = document.getElementById('register-form');
     if(registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -1127,7 +1191,7 @@ window.onload = function() {
                 })
                 .then(() => {
                     Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ!', text: `ยินดีต้อนรับ ${username}!`, timer: 2000, showConfirmButton: false });
-                    window.showPage('page-home'); 
+                    window.showPage('page-home');
                 })
                 .catch((error) => {
                     console.error("Register Error:", error);
@@ -1174,7 +1238,7 @@ window.onload = function() {
             getDoc(userDocRef)
                 .then(docSnap => {
                     if (docSnap.exists()) {
-                        currentUserData = docSnap.data(); 
+                        currentUserData = docSnap.data();
                         if(loggedOutView) loggedOutView.style.display = 'none';
                         if(loggedInView) loggedInView.style.display = 'flex';
                         if(userUsername) userUsername.textContent = currentUserData.username;
