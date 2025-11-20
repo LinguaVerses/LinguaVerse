@@ -71,6 +71,7 @@
                     </div>
                 </div>
             </section>
+        
             <div class="mt-8 p-6 bg-white rounded-lg shadow">
                 <h2 class="text-2xl font-bold mb-4">นิยายอัปเดตล่าสุด</h2>
                 <div id="home-latest-updates" class="space-y-2">
@@ -136,41 +137,52 @@
 
         <div id="page-novels-center" class="page">
             <h2 class="text-3xl font-bold text-purple-700 mb-6">Novels Center</h2>
+            
             <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-center">
-                <input type="text" placeholder="ค้นหาชื่อเรื่อง..." class="flex-grow px-3 py-2 border border-gray-300 rounded-md min-w-[200px]">
-                <select class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
+                <input type="text" id="search-input" oninput="window.filterNovels()" placeholder="ค้นหาชื่อเรื่อง..." class="flex-grow px-3 py-2 border border-gray-300 rounded-md min-w-[200px]">
+                
+                <select id="filter-status" onchange="window.filterNovels()" class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                     <option value="">สถานะทั้งหมด</option>
                     <option value="Ongoing">Ongoing</option>
                     <option value="Complete">Complete</option>
                     <option value="Coming Soon">Coming Soon</option>
                     <option value="Other">Other</option>
                 </select>
-                <select class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
+                
+                <select id="filter-category" onchange="window.filterNovels()" class="px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                     <option value="">ประเภททั้งหมด</option>
                     <option value="Fantasy">Fantasy</option>
                     <option value="Romance">Romance</option>
                     <option value="Drama">Drama</option>
+                    <option value="Action">Action</option>
+                    <option value="Adventure">Adventure</option>
+                    <option value="Comedy">Comedy</option>
                 </select>
-                <button class="bg-purple-600 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700">ค้นหา</button>
+                
+                <button id="search-btn" onclick="window.filterNovels()" class="bg-purple-600 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-700">ค้นหา</button>
             </div>
             <div>
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Korean Novels (KR)</h3>
                 <div id="novel-container-kr" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-kr" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
+                
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Chinese Novels (CN)</h3>
                 <div id="novel-container-cn" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-cn" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
+                
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">English Novels (EN)</h3>
                 <div id="novel-container-en" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-en" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
+ 
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Japanese Novels (JP)</h3>
                 <div id="novel-container-jp" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-jp" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
             </div>
+ 
             <div class="flex justify-center items-center space-x-2 mt-8">
                 <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt; Previous</button>
                 <button class="px-3 py-1 border rounded-md bg-purple-600 text-white">1</button>
@@ -234,7 +246,7 @@
                 <div id="reader-content-div" class="novel-content text-gray-800 pt-4 mb-8">
                     <p>กำลังโหลดเนื้อหา...</p>
                 </div>
-                
+        
                 <div id="reader-navigation-buttons" class="flex justify-between border-t-2 border-purple-100 pt-6">
                 </div>
 
