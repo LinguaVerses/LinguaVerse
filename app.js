@@ -402,7 +402,7 @@ async function loadNovels() {
         novelCache = []; 
         let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
         
-        // --- 🕒 ใช้เวลา 3 วันตามปกติ ---
+        // --- 🕒 ใช้เวลา 3 วัน ตามปกติ ---
         const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); 
         
         let allNovels = [];
@@ -666,6 +666,7 @@ async function checkUserLikeStatus(novelId, totalLikes) {
     }
 }
 
+// --- Updated: Load Novel Details with Read More Logic ---
 async function loadNovelDetails(novelId) {
     if (!db || !novelId) return;
     document.getElementById('detail-cover-img').src = 'https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading...';
@@ -675,7 +676,17 @@ async function loadNovelDetails(novelId) {
     document.getElementById('detail-language').textContent = '...';
     document.getElementById('detail-status').textContent = '...';
     document.getElementById('detail-chapters-count').textContent = '...'; 
-    document.getElementById('detail-description').innerHTML = '<p>กำลังโหลดเรื่องย่อ...</p>';
+    
+    // Reset Description & Button (สำคัญมาก! ต้อง reset ก่อนโหลดใหม่)
+    const descEl = document.getElementById('detail-description');
+    const toggleBtn = document.getElementById('toggle-desc-btn');
+    descEl.innerHTML = '<p>กำลังโหลดเรื่องย่อ...</p>';
+    descEl.className = "text-gray-600 novel-content mb-2 transition-all duration-300"; // Reset classes to default
+    if(toggleBtn) {
+        toggleBtn.classList.add('hidden'); 
+        toggleBtn.textContent = 'อ่านต่อ... (Read More)'; // Reset text
+    }
+
     document.getElementById('detail-categories').innerHTML = '<span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full animate-pulse">...</span>';
     
     const likeBtn = document.getElementById('detail-like-btn');
@@ -693,8 +704,24 @@ async function loadNovelDetails(novelId) {
             document.getElementById('detail-author').textContent = novel.author;
             document.getElementById('detail-language').textContent = novel.language.toUpperCase();
             document.getElementById('detail-status').textContent = novel.status;
-            document.getElementById('detail-description').innerHTML = novel.description;
             
+            // --- ส่วนจัดการเรื่องย่อ (ใหม่) ---
+            descEl.innerHTML = novel.description;
+            
+            // ตรวจสอบความสูงของเนื้อหา
+            setTimeout(() => {
+                if (descEl.scrollHeight > 180) {
+                    descEl.classList.add('desc-truncated');
+                    if(toggleBtn) {
+                        toggleBtn.classList.remove('hidden');
+                        toggleBtn.textContent = 'อ่านต่อ... (Read More) ▼';
+                    }
+                } else {
+                    descEl.classList.remove('desc-truncated');
+                }
+            }, 50);
+            // --------------------------------
+
             const categoriesContainer = document.getElementById('detail-categories');
             categoriesContainer.innerHTML = '';
             if (novel.categories && novel.categories.length > 0) {
@@ -735,7 +762,6 @@ function getChapterBadge(pointCost, type, isUnlocked) {
     return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
 }
 
-// --- Updated: Load Novel Chapters with Schedule Logic ---
 async function loadNovelChapters(novelId) {
     if (!db || !novelId) return;
     const chapterListContainer = document.getElementById('detail-chapter-list-container');
@@ -751,7 +777,6 @@ async function loadNovelChapters(novelId) {
         });
         chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
         
-        // --- Schedule Logic ---
         const now = new Date();
         const isAdmin = currentUserData && currentUserData.role === 'admin';
         
@@ -778,7 +803,6 @@ async function loadNovelChapters(novelId) {
             const chapterId = chapter.id;
             const isUnlocked = unlockedChapters.includes(chapterId);
             
-            // Visual indicator for Admin if scheduled in future
             let scheduleBadge = '';
             const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0);
             if (isAdmin && scheduledDate > now) {
@@ -963,6 +987,26 @@ window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = 
         editor.focus();
     } else {
         console.error("Editor element not found:", editorId);
+    }
+}
+
+// --- ฟังก์ชันใหม่: กดเพื่อย่อ/ขยาย เรื่องย่อ ---
+window.toggleDescription = function() {
+    const descEl = document.getElementById('detail-description');
+    const btn = document.getElementById('toggle-desc-btn');
+
+    if (descEl.classList.contains('desc-truncated')) {
+        // ถ้ากำลังย่ออยู่ -> ให้ขยาย
+        descEl.classList.remove('desc-truncated');
+        descEl.classList.add('desc-expanded');
+        btn.textContent = 'ย่อลง (Show Less) ▲';
+    } else {
+        // ถ้ากำลังขยายอยู่ -> ให้ย่อกลับ
+        descEl.classList.remove('desc-expanded');
+        descEl.classList.add('desc-truncated');
+        btn.textContent = 'อ่านต่อ... (Read More) ▼';
+        // เลื่อนหน้าจอกลับไปหาหัวข้อเรื่องย่อ (เผื่อคนอ่านเลื่อนลงไปไกล)
+        descEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
