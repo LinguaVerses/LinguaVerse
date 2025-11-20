@@ -402,8 +402,8 @@ async function loadNovels() {
         novelCache = []; 
         let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
         
-        // --- แก้ไขระยะเวลา New เป็น 30 วัน (เพื่อให้โชว์แน่นอน) ---
-        const timeAgoLimit = Date.now() - (30 * 24 * 60 * 60 * 1000); 
+        // --- 🕒 กลับไปใช้ 3 วัน ตามปกติ (ถ้าไม่มีการอัปเดตใน 3 วัน หน้าแรกจะว่าง) ---
+        const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); 
         
         let allNovels = [];
         querySnapshot.forEach((doc) => {
@@ -429,7 +429,7 @@ async function loadNovels() {
                 }
                 let newBadge = '';
                 let isNew = false;
-                // เช็คเงื่อนไข New (30 วัน)
+                
                 if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > timeAgoLimit) {
                     newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
                     isNew = true;
@@ -446,7 +446,6 @@ async function loadNovels() {
                 `;
                 containers[lang].appendChild(card);
                 
-                // เพิ่มลงหน้า Home (จำกัด 5 เรื่อง)
                 if (isNew && homeUpdatesContainer && homeUpdatesContainer.childElementCount < 5) {
                      const homeCard = document.createElement('div');
                      homeCard.className = "flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer";
@@ -470,7 +469,7 @@ async function loadNovels() {
             }
         });
         if (homeUpdatesContainer && homeUpdatesContainer.childElementCount === 0) {
-            homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต (ภายใน 30 วัน)</p>';
+            homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>';
         }
     } catch (error) {
         console.error("Error loading novels: ", error);
@@ -500,7 +499,7 @@ window.filterNovels = function() {
         if(containers[key]) containers[key].innerHTML = '';
     }
 
-    const timeAgoLimit = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); // 3 วัน
     let hasResults = { 'KR': false, 'CN': false, 'EN': false, 'JP': false };
 
     novelCache.forEach(novel => {
@@ -1026,15 +1025,21 @@ window.showReaderPage = function(chapterId, pointCost) {
         return;
     }
 
+    // --- แก้ไข: ตรวจสอบสิทธิ์ Admin หรือเคยซื้อแล้ว ---
+    if (currentUserData.role === 'admin') {
+        loadChapterContent(chapterId); // Admin อ่านฟรีทันที
+        return;
+    }
+    
     if (currentUserData.unlockedChapters && currentUserData.unlockedChapters.includes(chapterId)) {
-        loadChapterContent(chapterId);
+        loadChapterContent(chapterId); // เคยซื้อแล้ว อ่านได้เลย
         return;
     }
 
     if (pointCost === 0) {
-        loadChapterContent(chapterId);
+        loadChapterContent(chapterId); // ตอนฟรี
     } else {
-        window.showPointAlert(chapterId, pointCost);
+        window.showPointAlert(chapterId, pointCost); // ต้องจ่ายเงิน
     }
 }
 
@@ -1182,10 +1187,10 @@ window.onload = function() {
         console.error("Lucide error:", error);
     }
     
-    // Check Config Validity
     try {
+        // เช็คว่ามีการใส่ Config หรือยัง
         if (firebaseConfig.apiKey === "นำรหัสของคุณมาใส่ตรงนี้" || firebaseConfig.apiKey.includes("xxx")) {
-            alert("⚠️ กรุณาใส่รหัส Firebase Config ในไฟล์ app.js ให้ถูกต้องก่อนใช้งาน");
+            Swal.fire('Config Error', 'กรุณาใส่ Firebase Config ในไฟล์ app.js บรรทัดบนสุด', 'error');
             throw new Error("Missing Firebase Config");
         }
         
@@ -1195,10 +1200,11 @@ window.onload = function() {
         console.log("Firebase initialized successfully!");
     } catch (error) {
         console.error("Firebase initialization failed:", error);
+        // ถ้า Error ตรงนี้ สคริปต์จะหยุดทำงาน ทำให้ปุ่มต่างๆ ไม่ทำงานด้วย
         return; 
     }
     
-    // Toggle Password Logic
+    // --- TOGGLE PASSWORD VISIBILITY (แก้ไขให้ทำงานชัวร์ๆ) ---
     function setupPasswordToggle(btnId, inputId, iconId) {
         const btn = document.getElementById(btnId);
         const input = document.getElementById(inputId);
@@ -1206,10 +1212,11 @@ window.onload = function() {
         
         if (btn && input && icon) {
             btn.addEventListener('click', (e) => {
-                e.preventDefault(); 
+                e.preventDefault(); // ป้องกันการกดปุ่มแล้ว Form Submit
                 const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
                 input.setAttribute('type', type);
                 
+                // เปลี่ยนไอคอน
                 if (type === 'text') {
                     icon.setAttribute('data-lucide', 'eye');
                 } else {
@@ -1220,6 +1227,7 @@ window.onload = function() {
         }
     }
 
+    // เรียกใช้ฟังก์ชันสำหรับหน้า Login และ Register
     setupPasswordToggle('reg-toggle-password', 'reg-password', 'reg-toggle-icon');
     setupPasswordToggle('login-toggle-password', 'login-password', 'login-toggle-icon');
     
@@ -1368,6 +1376,7 @@ window.onload = function() {
     const commentBtn = document.getElementById('reader-comment-post-btn');
     if(commentBtn) commentBtn.addEventListener('click', saveComment);
     
+    // --- Topup Form Submission (New) ---
     const topupForm = document.getElementById('topup-form');
     if(topupForm) {
         topupForm.addEventListener('submit', async (e) => {
@@ -1386,6 +1395,7 @@ window.onload = function() {
                 return;
             }
 
+            // คำนวณ Points
             const points = pointPackages[amount] || 0;
 
             const requestData = {
@@ -1393,8 +1403,8 @@ window.onload = function() {
                 username: currentUserData.username,
                 amount: parseInt(amount),
                 points: points,
-                transferTime: time, 
-                status: 'pending', 
+                transferTime: time, // เก็บเป็น string จาก input ไปเลย ง่ายต่อการอ่าน
+                status: 'pending', // สถานะรอตรวจสอบ
                 createdAt: Timestamp.now()
             };
 
@@ -1406,8 +1416,8 @@ window.onload = function() {
                     icon: 'success'
                 });
                 topupForm.reset();
-                document.getElementById('point-username').value = currentUserData.username;
-                checkAdminNotifications(); 
+                document.getElementById('point-username').value = currentUserData.username; // ใส่ชื่อกลับเข้าไป
+                checkAdminNotifications(); // อัปเดตแจ้งเตือนแอดมิน (เผื่อแอดมินลองระบบเอง)
             } catch (error) {
                 console.error("Error saving topup request:", error);
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อมูลได้', 'error');
@@ -1433,7 +1443,7 @@ window.onload = function() {
                         role: 'user', 
                         createdAt: Timestamp.now(),
                         likedNovels: [],
-                        unlockedChapters: [] 
+                        unlockedChapters: [] // เริ่มต้นด้วยอาเรย์ว่าง
                     });
                 })
                 .then(() => {
@@ -1474,7 +1484,7 @@ window.onload = function() {
         const userUsername = document.getElementById('user-username');
         const userPoints = document.getElementById('user-points');
         const adminNotifyBtn = document.getElementById('admin-notify-btn');
-        const adminTopupBtn = document.getElementById('admin-topup-btn'); 
+        const adminTopupBtn = document.getElementById('admin-topup-btn'); // ปุ่มใหม่
         const adminSettingsBtn = document.getElementById('admin-settings-btn');
         const pointPageUsername = document.getElementById('point-username');
         const readerCommentUsername = document.getElementById('reader-comment-username');
@@ -1501,12 +1511,12 @@ window.onload = function() {
                         // Admin Controls
                         if (currentUserData.role === 'admin') {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'block';
-                            if(adminTopupBtn) adminTopupBtn.style.display = 'block'; 
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'block'; // ปุ่มใหม่
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'block';
                             checkAdminNotifications(); 
                         } else {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'none';
-                            if(adminTopupBtn) adminTopupBtn.style.display = 'none'; 
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'none'; // ปุ่มใหม่
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'none';
                         }
                         loadNovels();
