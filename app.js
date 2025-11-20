@@ -402,7 +402,7 @@ async function loadNovels() {
         novelCache = []; 
         let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
         
-        // --- 🕒 กลับไปใช้ 3 วัน ตามปกติ (ถ้าไม่มีการอัปเดตใน 3 วัน หน้าแรกจะว่าง) ---
+        // --- 🕒 ใช้เวลา 3 วันตามปกติ ---
         const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); 
         
         let allNovels = [];
@@ -735,6 +735,7 @@ function getChapterBadge(pointCost, type, isUnlocked) {
     return `<span class="text-sm font-medium px-2 py-1 rounded" style="background-color: #1e90ff; color: white;">${pointCost} Points</span>`;
 }
 
+// --- Updated: Load Novel Chapters with Schedule Logic ---
 async function loadNovelChapters(novelId) {
     if (!db || !novelId) return;
     const chapterListContainer = document.getElementById('detail-chapter-list-container');
@@ -749,9 +750,21 @@ async function loadNovelChapters(novelId) {
             chapters.push({ id: doc.id, ...doc.data() });
         });
         chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
-        chaptersCountEl.textContent = `${chapters.length} ตอน`;
+        
+        // --- Schedule Logic ---
+        const now = new Date();
+        const isAdmin = currentUserData && currentUserData.role === 'admin';
+        
+        // Filter chapters: Hide if (scheduledTime > now) AND (user is NOT admin)
+        const visibleChapters = chapters.filter(chapter => {
+            const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0); 
+            if (isAdmin) return true; // Admin sees everything
+            return scheduledDate <= now; // User sees only released chapters
+        });
+
+        chaptersCountEl.textContent = `${visibleChapters.length} ตอน`;
         chapterListContainer.innerHTML = '';
-        if (chapters.length === 0) {
+        if (visibleChapters.length === 0) {
             chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">ยังไม่มีตอน...</div>';
             return;
         }
@@ -761,14 +774,21 @@ async function loadNovelChapters(novelId) {
             unlockedChapters = currentUserData.unlockedChapters;
         }
 
-        chapters.forEach(chapter => {
+        visibleChapters.forEach(chapter => {
             const chapterId = chapter.id;
             const isUnlocked = unlockedChapters.includes(chapterId);
+            
+            // Visual indicator for Admin if scheduled in future
+            let scheduleBadge = '';
+            const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0);
+            if (isAdmin && scheduledDate > now) {
+                scheduleBadge = ' <span class="text-xs text-red-500 font-bold border border-red-500 px-1 rounded">⏳ รอเผยแพร่</span>';
+            }
 
             const chapterEl = document.createElement('div');
             chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer";
             chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
-            const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}</span>`;
+            const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}${scheduleBadge}</span>`;
             const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type, isUnlocked);
             chapterEl.innerHTML = titleSpan + badgeSpan;
             chapterListContainer.appendChild(chapterEl);
