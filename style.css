@@ -115,4 +115,20 @@ body {
     align-items: center;
     justify-content: center;
 }
+
+/* --- Description Toggle Styles --- */
+.desc-truncated {
+    max-height: 180px; /* ความสูงที่ต้องการโชว์ตอนแรก (ปรับเลขนี้ได้) */
+    overflow: hidden;
+    position: relative;
+    /* เทคนิคทำให้ตัวหนังสือจางลงด้านล่าง */
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.desc-expanded {
+    max-height: none; /* ปลดล็อกความสูง */
+    -webkit-mask-image: none;
+    mask-image: none;
+}
 /* --- END: ADDED FOR ADMIN BADGE --- */
