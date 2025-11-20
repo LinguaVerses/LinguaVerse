@@ -24,12 +24,12 @@ import {
 
 // --- ⚠️ ใส่ค่า Config ของคุณที่นี่ ⚠️ ---
 const firebaseConfig = {
-    apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
-    authDomain: "linguaverse-novel.firebaseapp.com",
-    projectId: "linguaverse-novel",
-    storageBucket: "linguaverse-novel.firebasestorage.app",
-    messagingSenderId: "31579058890",
-    appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
+    apiKey: "xxx",
+    authDomain: "xxx",
+    projectId: "xxx",
+    storageBucket: "xxx",
+    messagingSenderId: "xxx",
+    appId: "xxx"
 };
 
 // --- Global Variables ---
@@ -43,6 +43,15 @@ let novelCache = [];
 let currentEditingNovelId = null;
 let currentEditingChapterId = null;
 let currentNovelChapters = [];
+
+// ตารางคะแนน (บาท -> Points)
+const pointPackages = {
+    "25": 255,   // 250 + 5
+    "50": 515,   // 500 + 15
+    "75": 770,   // 750 + 20
+    "100": 1025, // 1000 + 25
+    "150": 1530  // 1500 + 30
+};
 
 // ============================================================
 //  1. HELPER FUNCTIONS
@@ -259,6 +268,121 @@ async function loadAdminNotifications() {
     }
 }
 
+// --- ADMIN TOPUP MANAGEMENT ---
+
+window.loadAdminTopupRequests = async function() {
+    const container = document.getElementById('admin-topup-list');
+    if (!db || !container) return;
+    
+    container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
+    
+    try {
+        // ดึงข้อมูลที่สถานะเป็น 'pending'
+        const q = query(collection(db, "topup_requests"), where("status", "==", "pending"));
+        const querySnapshot = await getDocs(q);
+        
+        let requests = [];
+        querySnapshot.forEach((doc) => {
+            requests.push({ id: doc.id, ...doc.data() });
+        });
+
+        // เรียงตามวันที่แจ้ง (เก่าสุดอยู่บน จะได้ตรวจตามคิว)
+        requests.sort((a, b) => a.createdAt - b.createdAt);
+        
+        container.innerHTML = '';
+        if (requests.length === 0) {
+            container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">ไม่มีรายการรออนุมัติ</td></tr>';
+            return;
+        }
+
+        requests.forEach(req => {
+            const row = document.createElement('tr');
+            const amountDisplay = `${req.amount} บาท (+${req.points} Points)`;
+            const timeDisplay = new Date(req.transferTime).toLocaleString('th-TH');
+            
+            row.innerHTML = `
+                <td class="px-4 py-3 text-sm text-gray-900">
+                    <div class="font-medium">${req.username}</div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-900 font-bold text-purple-600">
+                    ${amountDisplay}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500">
+                    ${timeDisplay}
+                </td>
+                <td class="px-4 py-3 text-sm space-x-2">
+                    <button onclick="window.approveTopup('${req.id}', '${req.userId}', ${req.points}, '${req.username}')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">อนุมัติ</button>
+                    <button onclick="window.rejectTopup('${req.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">ยกเลิก</button>
+                </td>
+            `;
+            container.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error loading topup requests:", error);
+        container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-red-500">ไม่สามารถโหลดข้อมูลได้</td></tr>';
+    }
+}
+
+window.approveTopup = async function(reqId, userId, points, username) {
+    Swal.fire({
+        title: 'ยืนยันการอนุมัติ?',
+        text: `เติม ${points} Points ให้กับ ${username}`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'อนุมัติเลย',
+        cancelButtonText: 'เดี๋ยวก่อน'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // 1. อัปเดตสถานะคำขอเป็น completed
+                await updateDoc(doc(db, "topup_requests", reqId), {
+                    status: 'completed',
+                    approvedAt: Timestamp.now()
+                });
+
+                // 2. เพิ่ม Points ให้ User
+                await updateDoc(doc(db, "users", userId), {
+                    balancePoints: increment(points)
+                });
+
+                Swal.fire('สำเร็จ!', 'เติม Points เรียบร้อยแล้ว', 'success');
+                window.loadAdminTopupRequests(); // รีโหลดตาราง
+                checkAdminNotifications(); // อัปเดตตัวเลขแจ้งเตือน
+            } catch (error) {
+                console.error("Error approving topup:", error);
+                Swal.fire('Error', 'เกิดข้อผิดพลาดในการอนุมัติ', 'error');
+            }
+        }
+    });
+}
+
+window.rejectTopup = async function(reqId) {
+    Swal.fire({
+        title: 'ยืนยันการยกเลิก?',
+        text: "รายการนี้จะไม่ได้รับ Points",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'ยกเลิกรายการ',
+        cancelButtonText: 'ปิด'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await updateDoc(doc(db, "topup_requests", reqId), {
+                    status: 'rejected',
+                    rejectedAt: Timestamp.now()
+                });
+                Swal.fire('ยกเลิกแล้ว', 'รายการถูกปฏิเสธ', 'info');
+                window.loadAdminTopupRequests();
+                checkAdminNotifications();
+            } catch (error) {
+                console.error("Error rejecting topup:", error);
+                Swal.fire('Error', 'เกิดข้อผิดพลาด', 'error');
+            }
+        }
+    });
+}
+
 async function loadNovels() {
     if (!db) return;
     const containers = {
@@ -428,17 +552,32 @@ async function checkAdminNotifications() {
     if (!db || !currentUserData || currentUserData.role !== 'admin') {
         return;
     }
-    const badge = document.getElementById('admin-notify-badge');
+    const commentBadge = document.getElementById('admin-notify-badge');
+    const topupBadge = document.getElementById('admin-topup-badge');
+    
     try {
-        const q = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
-        const querySnapshot = await getDocs(q);
-        const unreadCount = querySnapshot.size;
-        if (unreadCount > 0) {
-            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-            badge.classList.remove('hidden');
+        // Check Comments
+        const qComment = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
+        const snapComment = await getDocs(qComment);
+        const commentCount = snapComment.size;
+        if (commentCount > 0) {
+            commentBadge.textContent = commentCount > 9 ? '9+' : commentCount;
+            commentBadge.classList.remove('hidden');
         } else {
-            badge.classList.add('hidden');
+            commentBadge.classList.add('hidden');
         }
+
+        // Check Pending Topups
+        const qTopup = query(collection(db, "topup_requests"), where("status", "==", "pending"));
+        const snapTopup = await getDocs(qTopup);
+        const topupCount = snapTopup.size;
+        if (topupCount > 0) {
+            topupBadge.textContent = topupCount > 9 ? '9+' : topupCount;
+            topupBadge.classList.remove('hidden');
+        } else {
+            topupBadge.classList.add('hidden');
+        }
+
     } catch (error) {
         console.error("Error checking admin notifications:", error);
     }
@@ -777,6 +916,9 @@ window.showPage = function(pageId) {
     }
     if (pageId === 'page-admin-notifications') {
         loadAdminNotifications();
+    }
+    if (pageId === 'page-admin-topup') {
+        loadAdminTopupRequests();
     }
     if (window.scrollToTop) window.scrollToTop();
     if (window.lucide) window.lucide.createIcons();
@@ -1169,6 +1311,56 @@ window.onload = function() {
     }
     const commentBtn = document.getElementById('reader-comment-post-btn');
     if(commentBtn) commentBtn.addEventListener('click', saveComment);
+    
+    // --- Topup Form Submission (New) ---
+    const topupForm = document.getElementById('topup-form');
+    if(topupForm) {
+        topupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                Swal.fire('กรุณาเข้าสู่ระบบ', 'คุณต้องเข้าสู่ระบบก่อนแจ้งโอนเงิน', 'error');
+                return;
+            }
+
+            const amount = document.getElementById('topup-amount').value;
+            const time = document.getElementById('topup-time').value;
+
+            if (!amount || !time) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกยอดเงินและระบุเวลาโอน', 'warning');
+                return;
+            }
+
+            // คำนวณ Points
+            const points = pointPackages[amount] || 0;
+
+            const requestData = {
+                userId: currentUser.uid,
+                username: currentUserData.username,
+                amount: parseInt(amount),
+                points: points,
+                transferTime: time, // เก็บเป็น string จาก input ไปเลย ง่ายต่อการอ่าน
+                status: 'pending', // สถานะรอตรวจสอบ
+                createdAt: Timestamp.now()
+            };
+
+            try {
+                await addDoc(collection(db, "topup_requests"), requestData);
+                Swal.fire({
+                    title: 'แจ้งโอนสำเร็จ!',
+                    text: 'แอดมินได้รับข้อมูลแล้ว จะทำการตรวจสอบและเติม Points ให้โดยเร็วที่สุดครับ',
+                    icon: 'success'
+                });
+                topupForm.reset();
+                document.getElementById('point-username').value = currentUserData.username; // ใส่ชื่อกลับเข้าไป
+                checkAdminNotifications(); // อัปเดตแจ้งเตือนแอดมิน (เผื่อแอดมินลองระบบเอง)
+            } catch (error) {
+                console.error("Error saving topup request:", error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อมูลได้', 'error');
+            }
+        });
+    }
+
     const registerForm = document.getElementById('register-form');
     if(registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -1227,6 +1419,7 @@ window.onload = function() {
         const userUsername = document.getElementById('user-username');
         const userPoints = document.getElementById('user-points');
         const adminNotifyBtn = document.getElementById('admin-notify-btn');
+        const adminTopupBtn = document.getElementById('admin-topup-btn'); // ปุ่มใหม่
         const adminSettingsBtn = document.getElementById('admin-settings-btn');
         const pointPageUsername = document.getElementById('point-username');
         const readerCommentUsername = document.getElementById('reader-comment-username');
@@ -1249,12 +1442,16 @@ window.onload = function() {
                         }
                         if (readerCommentUsername) readerCommentUsername.textContent = currentUserData.username;
                         if (commentInputBox) commentInputBox.style.display = 'block';
+                        
+                        // Admin Controls
                         if (currentUserData.role === 'admin') {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'block';
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'block'; // ปุ่มใหม่
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'block';
                             checkAdminNotifications(); 
                         } else {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'none';
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'none'; // ปุ่มใหม่
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'none';
                         }
                         loadNovels();
@@ -1275,6 +1472,7 @@ window.onload = function() {
             if(userUsername) userUsername.textContent = '...';
             if(userPoints) userPoints.textContent = '... Points';
             if(adminNotifyBtn) adminNotifyBtn.style.display = 'none';
+            if(adminTopupBtn) adminTopupBtn.style.display = 'none';
             if(adminSettingsBtn) adminSettingsBtn.style.display = 'none';
             if (pointPageUsername) {
                 pointPageUsername.value = '';
