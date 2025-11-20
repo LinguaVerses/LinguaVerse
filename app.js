@@ -22,7 +22,9 @@ import {
     increment 
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-// --- ⚠️ ใส่ค่า Config ของคุณที่นี่ ⚠️ ---
+// ============================================================
+//  ⚠️ นำค่า Config เดิมของคุณมาวางทับตรงนี้ (ห้ามใช้ xxx) ⚠️
+// ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
     authDomain: "linguaverse-novel.firebaseapp.com",
@@ -31,6 +33,7 @@ const firebaseConfig = {
     messagingSenderId: "31579058890",
     appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
 };
+// ============================================================
 
 // --- Global Variables ---
 let app, auth, db;
@@ -1157,15 +1160,48 @@ window.onload = function() {
     }
     
     try {
+        // เช็คว่ามีการใส่ Config หรือยัง
+        if (firebaseConfig.apiKey === "นำรหัสของคุณมาใส่ตรงนี้" || firebaseConfig.apiKey.includes("xxx")) {
+            Swal.fire('Config Error', 'กรุณาใส่ Firebase Config ในไฟล์ app.js บรรทัดบนสุด', 'error');
+            throw new Error("Missing Firebase Config");
+        }
+        
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
         console.log("Firebase initialized successfully!");
     } catch (error) {
         console.error("Firebase initialization failed:", error);
-        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+        // ถ้า Error ตรงนี้ สคริปต์จะหยุดทำงาน ทำให้ปุ่มต่างๆ ไม่ทำงานด้วย
         return; 
     }
+    
+    // --- TOGGLE PASSWORD VISIBILITY (แก้ไขให้ทำงานชัวร์ๆ) ---
+    function setupPasswordToggle(btnId, inputId, iconId) {
+        const btn = document.getElementById(btnId);
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        
+        if (btn && input && icon) {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault(); // ป้องกันการกดปุ่มแล้ว Form Submit
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                
+                // เปลี่ยนไอคอน
+                if (type === 'text') {
+                    icon.setAttribute('data-lucide', 'eye');
+                } else {
+                    icon.setAttribute('data-lucide', 'eye-off');
+                }
+                if (window.lucide) window.lucide.createIcons();
+            });
+        }
+    }
+
+    // เรียกใช้ฟังก์ชันสำหรับหน้า Login และ Register
+    setupPasswordToggle('reg-toggle-password', 'reg-password', 'reg-toggle-icon');
+    setupPasswordToggle('login-toggle-password', 'login-password', 'login-toggle-icon');
     
     // Event Listeners
     const loadNovelEditBtn = document.getElementById('load-novel-to-edit-btn');
