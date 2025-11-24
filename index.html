@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="text-gray-800">
 
@@ -46,6 +47,10 @@
                         <i data-lucide="credit-card"></i>
                         <span id="admin-topup-badge" class="hidden absolute p-1 text-xs font-bold text-white bg-green-500 rounded-full text-center">0</span>
                     </button>
+		    <button onclick="window.showPage('page-admin-inbox')" id="admin-inbox-btn" class="hidden p-2 text-gray-600 hover:text-purple-600 relative transition-transform hover:scale-110">
+    			<i data-lucide="mail"></i>
+    			<span id="admin-inbox-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm border border-white">0</span>
+		    </button>
                     <button id="admin-settings-btn" class="hidden text-gray-500 hover:text-purple-600" onclick="window.showPage('page-admin-add-novel')">
                         <i data-lucide="settings"></i>
                     </button>
@@ -70,12 +75,22 @@
                             <button class="bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-purple-800" onclick="window.showPage('page-register')">สมัครสมาชิก</button>
                         </div>
                     </div>
-                    <div class="md:w-1/2 h-64 md:h-80 bg-purple-900 rounded-lg shadow-xl flex items-center justify-center">
-                        <span class="text-purple-300">Anime Reading Video / Image</span>
+                    <div class="md:w-1/2 w-full mt-4 md:mt-0 flex justify-center">
+                        <video 
+                            class="w-full h-auto rounded-lg shadow-2xl border-4 border-purple-300/30" 
+                            autoplay 
+                            muted 
+                            loop 
+                            playsinline 
+                            controls
+                        >
+                            <source src="intro.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                 </div>
             </section>
-        
+            
             <div class="mt-8 p-6 bg-white rounded-lg shadow">
                 <h2 class="text-2xl font-bold mb-4">นิยายอัปเดตล่าสุด</h2>
                 <div id="home-latest-updates" class="space-y-2">
@@ -90,22 +105,32 @@
                 <form id="register-form" class="space-y-4">
                     <div>
                         <label for="reg-username" class="block text-sm font-medium text-gray-700">ชื่อผู้ใช้งาน (Username)</label>
-                        <input type="text" id="reg-username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+                        <input type="text" id="reg-username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 transition-colors" placeholder="ตั้งชื่อผู้ใช้งาน..." required>
+                        <p class="text-xs text-red-500 mt-1 hidden" id="error-reg-username"></p>
                     </div>
                     <div>
                         <label for="reg-email" class="block text-sm font-medium text-gray-700">อีเมล (Email)</label>
-                        <input type="email" id="reg-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
+                        <input type="email" id="reg-email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 transition-colors" placeholder="example@mail.com" required>
+                        <p class="text-xs text-red-500 mt-1 hidden" id="error-reg-email"></p>
                     </div>
                     <div>
                         <label for="reg-password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
                         <div class="relative">
-                            <input type="password" id="reg-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500" required>
-                            <button type="button" id="reg-toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500">
+                            <input type="password" id="reg-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 transition-colors" placeholder="กำหนดรหัสผ่าน..." required>
+                            <button type="button" id="reg-toggle-password" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-purple-600">
                                 <i id="reg-toggle-icon" data-lucide="eye-off" class="h-5 w-5"></i>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" id="register-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">ลงทะเบียน (Sign Up)</button>
+                    <div>
+                        <label for="reg-confirm-password" class="block text-sm font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
+                        <div class="relative">
+                            <input type="password" id="reg-confirm-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 transition-colors" placeholder="ใส่รหัสผ่านอีกครั้ง..." required>
+                        </div>
+                        <p class="text-xs text-red-500 mt-1 hidden" id="error-reg-password"></p>
+                    </div>
+
+                    <button type="submit" id="register-submit-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors mt-6">ลงทะเบียน (Sign Up)</button>
                 </form>
                 <div class="mt-6 text-center">
                     <p class="text-sm text-gray-600">มีบัญชีอยู่แล้ว? <span class="font-medium text-purple-600 hover:text-purple-500 cursor-pointer" onclick="window.showPage('page-login')">เข้าสู่ระบบที่นี่</span></p>
@@ -181,13 +206,13 @@
                 <div id="novel-container-en" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-en" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
- 
+
                 <h3 class="text-2xl font-semibold mb-3 text-purple-800 border-b-2 border-purple-200 pb-2">Japanese Novels (JP)</h3>
                 <div id="novel-container-jp" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <p id="novel-loading-jp" class="text-gray-500 col-span-full">กำลังโหลดนิยาย...</p>
                 </div>
             </div>
- 
+
             <div class="flex justify-center items-center space-x-2 mt-8">
                 <button class="px-3 py-1 border rounded-md bg-white text-gray-600">&lt;&lt; Previous</button>
                 <button class="px-3 py-1 border rounded-md bg-purple-600 text-white">1</button>
@@ -255,10 +280,15 @@
                     <h2 id="reader-title" class="text-3xl font-bold text-center text-purple-800 mb-2">กำลังโหลด...</h2>
                     <h3 id="reader-chapter-title" class="text-xl text-center text-gray-600">...</h3>
                 </div>
-                <div id="reader-content-div" class="novel-content text-gray-800 pt-4 mb-8">
-                    <p>กำลังโหลดเนื้อหา...</p>
+                
+                <div class="novel-read-container">
+                    
+                    <div id="reader-content-div" class="novel-content text-gray-800 pt-4 mb-8">
+                        <p>กำลังโหลดเนื้อหา...</p>
+                    </div>
+                    
+                    <div class="protect-overlay"></div>
                 </div>
-        
                 <div id="reader-navigation-buttons" class="flex justify-between border-t-2 border-purple-100 pt-6">
                 </div>
 
@@ -363,6 +393,40 @@
                 </div>
             </div>
         </div>
+
+<div id="page-admin-inbox" class="page hidden pt-20 pb-20 px-4">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="inbox" class="text-purple-600"></i> กล่องข้อความจากทางบ้าน
+            </h2>
+            <button onclick="window.showPage('page-home')" class="text-gray-500 hover:text-purple-600">
+                <i data-lucide="x"></i> ปิด
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-purple-50 text-purple-700 text-sm uppercase">
+                        <tr>
+                            <th class="p-4 font-semibold">วันที่</th>
+                            <th class="p-4 font-semibold">ผู้ส่ง</th>
+                            <th class="p-4 font-semibold">หัวข้อ</th>
+                            <th class="p-4 font-semibold">ข้อความ</th>
+                            <th class="p-4 font-semibold text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-inbox-list" class="text-sm divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="5" class="p-8 text-center text-gray-500">กำลังโหลดข้อความ...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
         
         <div id="page-admin-add-novel" class="page p-4 md:p-0">
             <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
@@ -419,6 +483,7 @@
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Fantasy" class="novel-category-check"> <span>Fantasy</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Josei" class="novel-category-check"> <span>Josei</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Mature" class="novel-category-check"> <span>Mature</span></label>
+                            <label class="flex items-center space-x-2"><input type="checkbox" value="Psychological" class="novel-category-check"> <span>Psychological</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Romance" class="novel-category-check"> <span>Romance</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Slice of Life" class="novel-category-check"> <span>Slice of Life</span></label>
                             <label class="flex items-center space-x-2"><input type="checkbox" value="Smut" class="novel-category-check"> <span>Smut</span></label>
@@ -457,6 +522,9 @@
                             <i data-lucide="save"></i>
                             <span id="admin-novel-save-btn-text">Save New</span>
                         </button>
+			<button type="button" id="admin-delete-novel-btn" class="hidden flex-1 bg-red-100 text-red-600 py-2 px-4 rounded-lg hover:bg-red-200 transition-colors mr-2">
+    				<i data-lucide="trash-2" class="inline w-4 h-4 mr-1"></i> ลบเรื่องนี้
+			</button>
                     </div>
                 </form>
             </div>
@@ -544,16 +612,214 @@
         </div>
 
         <div id="page-coffee" class="page">
-            <h2 class="text-3xl font-bold text-purple-700 mb-6">Coffee</h2>
-            <p>หน้านี้สำหรับรับการสนับสนุน (Donate) ... (TODO)</p>
+            <div class="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-xl shadow-lg text-center">
+                
+                <div class="mb-8">
+                    <div class="inline-flex items-center justify-center p-4 bg-orange-100 rounded-full mb-4 animate-bounce">
+                        <i data-lucide="coffee" class="w-10 h-10 text-orange-600"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">เติมพลังให้นักแปล (Fuel for Translator)</h2>
+                    <p class="text-lg text-gray-600 leading-relaxed max-w-lg mx-auto">
+                        นิยายสนุกไหมคะ? ถ้าชอบผลงานของเรา แวะมาเติมคาเฟอีนให้นักแปลตาสว่างกันได้นะคะ! 
+                        กาแฟสักแก้วจะเป็นกำลังใจมหาศาลให้เราปั่นตอนต่อไปได้ไวขึ้น 
+                        <br><span class="text-purple-600 font-medium">ขอบคุณที่สนับสนุน LinguaVerse ค่ะ ❤️</span>
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div onclick="window.selectCoffee('25')" id="cup-25" class="coffee-card cursor-pointer border-2 border-gray-100 rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all">
+                        <i data-lucide="coffee" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
+                        <h3 class="font-bold text-gray-700">Small Cup</h3>
+                        <p class="text-orange-600 font-bold text-xl">฿25</p>
+                    </div>
+                    <div onclick="window.selectCoffee('50')" id="cup-50" class="coffee-card cursor-pointer border-2 border-gray-100 rounded-xl p-6 hover:border-orange-400 hover:shadow-md transition-all">
+                        <i data-lucide="coffee" class="w-10 h-10 mx-auto text-orange-500 mb-2"></i>
+                        <h3 class="font-bold text-gray-700">Medium Cup</h3>
+                        <p class="text-orange-600 font-bold text-xl">฿50</p>
+                    </div>
+                    <div onclick="window.selectCoffee('100')" id="cup-100" class="coffee-card cursor-pointer border-2 border-gray-100 rounded-xl p-6 hover:border-orange-500 hover:shadow-md transition-all">
+                        <div class="relative w-fit mx-auto">
+                            <i data-lucide="coffee" class="w-12 h-12 text-purple-600 mb-2"></i>
+                            <span class="absolute -top-1 -right-2 text-xs bg-red-500 text-white px-1 rounded-full animate-pulse">Hot!</span>
+                        </div>
+                        <h3 class="font-bold text-gray-700">Large Cup</h3>
+                        <p class="text-orange-600 font-bold text-xl">฿100</p>
+                    </div>
+                </div>
+
+                <div id="donate-section" class="hidden bg-gray-50 p-6 rounded-lg border border-gray-200 animate-fade-in">
+                    <p class="text-gray-800 font-medium mb-4">สแกน QR Code เพื่อเลี้ยงกาแฟ <span id="donate-amount-display" class="text-orange-600 font-bold">...</span></p>
+                    
+                    <div class="bg-white p-3 inline-block rounded-lg shadow-sm mb-6">
+                        <img src="payment_qr.jpg" alt="QR Code" class="w-48 h-auto object-contain mx-auto">
+                    </div>
+
+                    <form id="donate-form" class="max-w-md mx-auto space-y-4 text-left">
+                        <input type="hidden" id="donate-amount-val">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้เลี้ยง (Username / ชื่อเล่น)</label>
+                            <input type="text" id="donate-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500" placeholder="บอกชื่อให้เราชื่นใจหน่อย..." required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ข้อความถึงนักแปล (Optional)</label>
+                            <textarea id="donate-message" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500" placeholder="พิมพ์ข้อความให้กำลังใจ..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors flex justify-center items-center space-x-2">
+                            <i data-lucide="heart" class="fill-current"></i>
+                            <span>ส่งกำลังใจ (Send Donation)</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
         </div>
+        
         <div id="page-about" class="page">
-            <h2 class="text-3xl font-bold text-purple-700 mb-6">About Us</h2>
-            <p>เกี่ยวกับเรา... (TODO)</p>
+            <div class="max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-xl shadow-lg">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-700 mb-6 text-center">เกี่ยวกับ LinguaVerse</h2>
+                
+                <div class="mb-10 text-center max-w-3xl mx-auto">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center justify-center">
+                        <i data-lucide="globe" class="mr-2 text-purple-600"></i> ภารกิจของเรา
+                    </h3>
+                    <p class="text-lg text-gray-600 leading-relaxed">
+                        LinguaVerse เป็นแพลตฟอร์มส่วนตัว สำหรับเก็บรักษา และแชร์นิยายแปลจากภาษาเกาหลี จีน ญี่ปุ่น และอังกฤษ ที่แปลเป็นภาษาไทย เพื่อเพื่อนสมาชิกที่ชื่นชอบการอ่านนิยายแปลเท่านั้น เราเชื่อว่าการแปลและการอ่านงานวรรณกรรมที่ดี เป็นวิธีที่ยอดเยี่ยมในการเรียนรู้วัฒนธรรมและภาษาต่างๆ ผ่านเรื่องราวที่น่าสนใจจากการแปลที่มีคุณภาพ และเข้าถึงได้ง่าย
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    
+                   <div class="p-6 bg-purple-50 rounded-xl">
+                        <h3 class="text-lg font-bold text-purple-700 mb-2 flex items-center">
+                            <i data-lucide="eye" class="mr-2"></i> วิสัยทัศน์ของเรา
+                        </h3>
+                        <p class="text-gray-600">
+                            เราต้องการสร้างชุมชนผู้รักการอ่านที่ชื่นชมวรรณกรรมต่างประเทศ และสนับสนุนการแปลคุณภาพสูง ผ่านการให้ความสำคัญกับประสบการณ์ผู้อ่านและการสนับสนุนผู้แปล
+                        </p>
+                   </div>
+                   
+                   <div class="p-6 bg-blue-50 rounded-xl">
+                        <h3 class="text-lg font-bold text-blue-700 mb-2 flex items-center">
+                            <i data-lucide="check-circle" class="mr-2"></i> คุณภาพ
+                        </h3>
+                        <p class="text-gray-600">
+                            เรามุ่งมั่นที่จะให้การแปลที่ถูกต้อง เข้าใจง่าย ลื่นไหลไปตามอารมณ์ที่ผู้แต่งต้องการสื่อ
+                        </p>
+                   </div>
+                   
+                   <div class="p-6 bg-green-50 rounded-xl">
+                        <h3 class="text-lg font-bold text-green-700 mb-2 flex items-center">
+                            <i data-lucide="message-circle" class="mr-2"></i> ชุมชน
+                        </h3>
+                        <p class="text-gray-600">
+                            เราสร้างพื้นที่สำหรับเชื่อมต่อกับผู้อ่าน เพื่อแบ่งปันความคิดเห็น และแชร์ประสบการณ์
+                        </p>
+                   </div>
+                   
+                   <div class="p-6 bg-yellow-50 rounded-xl">
+                        <h3 class="text-lg font-bold text-yellow-700 mb-2 flex items-center">
+                            <i data-lucide="users" class="mr-2"></i> ทีมของเรา
+                        </h3>
+                        <p class="text-gray-600">
+                            LinguaVerse ก่อตั้งขึ้นโดยกลุ่มผู้รักการอ่านและการแปล ที่มีความหลงใหลในการแบ่งปันวรรณกรรมที่ดี ทีมของเราประกอบด้วยผู้แปล บรรณาธิการ และนักพัฒนา ที่ทำงานเพื่อให้ประสบการณ์ที่ดีที่สุดแก่ผู้อ่าน
+                        </p>
+                   </div>
+                </div>
+
+                <div class="p-6 bg-red-50 border-l-8 border-red-500 rounded-r-xl shadow-sm">
+                    <h3 class="text-xl font-bold text-red-700 flex items-center mb-2">
+                        <i data-lucide="shield-alert" class="mr-2"></i> ความเป็นส่วนตัว (สำคัญ)
+                    </h3>
+                    <p class="text-red-800 font-medium">
+                        เนื้อหาวรรณกรรมของเรา ไม่ได้เผยแพร่และไม่อนุญาติให้เผยแพร่บนโซเชียลมีเดีย เพื่อปกป้องลิขสิทธิ์ของผู้แต่ง
+                    </p>
+                </div>
+            </div>
         </div>
+        
         <div id="page-contact" class="page">
-            <h2 class="text-3xl font-bold text-purple-700 mb-6">Contact Us</h2>
-            <p>ติดต่อเรา... (TODO)</p>
+            <div class="contact-section-inner">
+    <div class="container-fluid">
+        
+        <div class="section-header text-center">
+            <h2 class="custom-contact-title">ติดต่อเรา</h2>
+            <p class="section-subtitle">พูดคุย ปรึกษา หรือติดตามผลงานของเราได้ทุกช่องทาง</p>
+            <div class="title-underline"></div>
+        </div>
+
+        <div class="contact-wrapper">
+            
+            <div class="contact-info-card">
+                <h3>ช่องทางติดตาม & พูดคุย</h3>
+                <p>คลิกที่ไอคอนเพื่อทักแชท หรือติดตามข่าวสารโปรโมชั่นล่าสุดจากเรา</p>
+                
+                <div class="social-links-grid">
+                    <a href="https://lin.ee/NMfoeFC" target="_blank" class="social-item line">
+                        <i class="fa-brands fa-line"></i>
+                        <span>Line OA</span>
+                    </a>
+
+                    <a href="https://www.facebook.com/profile.php?id=61554715749872" target="_blank" class="social-item facebook">
+                        <i class="fa-brands fa-facebook-f"></i>
+                        <span>Facebook</span>
+                    </a>
+
+                    <a href="https://www.instagram.com/thitipa_jeab?igsh=MW8zb2hwMDZndnRyeg==&utm_source=ig_contact_invite" target="_blank" class="social-item instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                        <span>Instagram</span>
+                    </a>
+
+                    <a href="https://www.tiktok.com/@j_studio8?_r=1&_t=ZS-91dIEVChmDQ" target="_blank" class="social-item tiktok">
+                        <i class="fa-brands fa-tiktok"></i>
+                        <span>TikTok</span>
+                    </a>
+
+                    <a href="https://www.threads.com/@thitipa_jeab?igshid=NTc4MTIwNjQ2YQ==" target="_blank" class="social-item threads">
+                        <i class="fa-brands fa-threads"></i>
+                        <span>Threads</span>
+                    </a>
+
+                    <a href="https://x.com/TPhatinavin" target="_blank" class="social-item twitter">
+                        <i class="fa-brands fa-x-twitter"></i>
+                        <span>Twitter (X)</span>
+                    </a>
+
+                     <a href="https://s.lemon8-app.com/s/GgkysMxrQN" target="_blank" class="social-item lemon8">
+                        <i class="fa-solid fa-lemon"></i>
+                        <span>Lemon8</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="contact-form-card">
+                <h3>ส่งข้อความถึงเรา</h3>
+                <form id="contactForm" class="contact-form">
+                    <div class="form-group">
+                        <input type="text" id="name" name="name" placeholder="ชื่อของคุณ" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" id="email" name="email" placeholder="อีเมลติดต่อกลับ" required>
+                    </div>
+                    <div class="form-group">
+                        <select id="topic" name="topic">
+                            <option value="ติดต่อทั่วไป">ติดต่อทั่วไป</option>
+                            <option value="สนใจบริการ">สนใจบริการ</option>
+                            <option value="สอบถามราคา">สอบถามราคา</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="message" name="message" rows="5" placeholder="ข้อความของคุณ..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">
+                        ส่งข้อความ <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
         </div>
 
     </main>
