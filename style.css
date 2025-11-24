@@ -1,8 +1,17 @@
 /* ตั้งค่า Font หลัก */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f7f3ff; /* สีม่วงอ่อนมากๆ สำหรับพื้นหลัง */
+    background-color: #f7f3ff;
 }
+
+/* ป้องกันการคัดลอก */
+.novel-content:not([contenteditable="true"]) {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 /* Font สำหรับเนื้อหานิยาย */
 .novel-content {
     font-family: 'Sarabun', sans-serif;
@@ -19,48 +28,44 @@ body {
     display: block;
 }
 
+/* --- Added: Validation Styles --- */
+/* กรอบสีแดงเมื่อข้อมูลผิดพลาด */
+.input-error {
+    border-color: #ef4444 !important; /* Tailwind red-500 */
+    background-color: #fef2f2 !important; /* Tailwind red-50 */
+}
+/* ------------------------------- */
+
 /* Responsive Menu (Mobile Bottom) */
 @media (max-width: 768px) {
-    /* ซ่อนเมนูหลัก (Desktop) */
-    #main-nav-desktop {
-        display: none;
-    }
-    /* แสดงเมนู (Mobile) */
-    #main-nav-mobile {
-        display: flex;
-    }
-    /* เติมที่ว่างด้านล่าง กันเมนูทับ */
-    main {
-        padding-bottom: 80px;
-    }
+    #main-nav-desktop { display: none; }
+    #main-nav-mobile { display: flex; }
+    main { padding-bottom: 80px; }
 }
 
 /* Custom Rich Editor Placeholder */
 [contenteditable="true"]:empty:before {
     content: attr(data-placeholder);
-    color: #a0aec0; /* สีเทา */
+    color: #a0aec0;
     pointer-events: none;
     display: block;
 }
 
-/* --- ADDED FOR RICH EDITOR OVERFLOW --- */
-/* แก้ปัญหา "ล้นกรอบ" และเพิ่ม Scrollbar */
 [contenteditable="true"] {
-    overflow-y: auto; /* เพิ่มแถบเลื่อนแนวตั้งอัตโนมัติ */
-    word-break: break-word; /* ตัดคำที่ยาวเกิน */
+    overflow-y: auto;
+    word-break: break-word;
 }
-/* --- END ADDED SECTION --- */
 
 /* Custom Scroll to Top */
 #scrollTopBtn {
-    display: none; /* ซ่อนไว้ก่อน */
+    display: none;
     align-items: center;
     justify-content: center;
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 99;
-    background-color: #8B5CF6; /* ม่วง */
+    background-color: #8B5CF6;
     color: white;
     border: none;
     border-radius: 50%;
@@ -69,15 +74,11 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     cursor: pointer;
 }
-/* สำหรับ Mobile ให้ขยับปุ่มขึ้นไปอยู่เหนือ Bottom Nav */
 @media (max-width: 768px) {
-    #scrollTopBtn {
-        bottom: 80px; /* 64px (nav) + 16px (margin) */
-    }
+    #scrollTopBtn { bottom: 80px; }
 }
 
-/* --- ADDED FOR RICH EDITOR --- */
-/* Custom Style สำหรับปุ่มเลือกสี */
+/* Rich Editor Color Picker */
 .toolbar-color-picker {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -90,25 +91,15 @@ body {
     background-color: transparent;
     cursor: pointer;
 }
-.toolbar-color-picker::-webkit-color-swatch-wrapper {
-    padding: 2px; /* สร้างขอบในเล็กน้อย */
-}
-.toolbar-color-picker::-webkit-color-swatch {
-    border: 1px solid #9ca3af; /* สีกรอบ */
-    border-radius: 4px;
-}
-/* สำหรับ Firefox */
-.toolbar-color-picker::-moz-color-swatch {
-    border: 1px solid #9ca3af;
-    border-radius: 4px;
-}
+.toolbar-color-picker::-webkit-color-swatch-wrapper { padding: 2px; }
+.toolbar-color-picker::-webkit-color-swatch { border: 1px solid #9ca3af; border-radius: 4px; }
+.toolbar-color-picker::-moz-color-swatch { border: 1px solid #9ca3af; border-radius: 4px; }
 
-/* --- START: ADDED FOR ADMIN BADGE --- */
-/* สไตล์สำหรับป้ายแจ้งเตือน (ตัวเลข) */
+/* Admin Badge */
 #admin-notify-badge {
-    min-width: 20px;
+    min-width: 20px; 
     height: 20px; 
-    line-height: 12px; /* ปรับให้ตัวเลขกลาง */
+    line-height: 12px;
     top: -8px;
     right: -8px;
     display: flex;
@@ -116,19 +107,202 @@ body {
     justify-content: center;
 }
 
-/* --- Description Toggle Styles --- */
+/* Description Toggle */
 .desc-truncated {
-    max-height: 180px; /* ความสูงที่ต้องการโชว์ตอนแรก (ปรับเลขนี้ได้) */
+    max-height: 180px;
     overflow: hidden;
     position: relative;
-    /* เทคนิคทำให้ตัวหนังสือจางลงด้านล่าง */
     -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
 }
-
 .desc-expanded {
-    max-height: none; /* ปลดล็อกความสูง */
+    max-height: none;
     -webkit-mask-image: none;
     mask-image: none;
 }
-/* --- END: ADDED FOR ADMIN BADGE --- */
+
+/* Protection Layer */
+.novel-read-container { position: relative; width: 100%; }
+.protect-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    background: transparent;
+}
+
+/* --- Coffee Page Styles --- */
+.coffee-card.selected {
+    border-color: #f97316 !important; /* Orange-500 */
+    background-color: #fff7ed !important; /* Orange-50 */
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   CONTACT US SECTION STYLES
+   ========================================= */
+
+/* จัดระยะห่างและพื้นหลัง */
+.contact-section-inner {
+    padding: 20px 0;
+    background-color: #f9fafb; /* สีพื้นหลังเทาอ่อนๆ ให้ดูสบายตา */
+    border-radius: 12px;
+}
+
+.custom-contact-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #6b21a8; /* สีม่วงตาม Theme เดิม */
+    margin-bottom: 10px;
+}
+
+.section-subtitle {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+/* Layout: จัดกล่องซ้าย-ขวา */
+.contact-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+/* การ์ดข้อมูล (ทั้งฝั่ง Social และ Form) */
+.contact-info-card, 
+.contact-form-card {
+    flex: 1;
+    min-width: 320px; /* ไม่ให้เล็กเกินไปในมือถือ */
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* เงานุ่มๆ ให้ดูลอยเด่น */
+    transition: transform 0.3s ease;
+}
+
+.contact-info-card h3,
+.contact-form-card h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 10px;
+}
+
+/* --- SOCIAL MEDIA GRID --- */
+.social-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* จัดเรียงอัตโนมัติ */
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.social-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+    color: #555;
+}
+
+.social-item i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    transition: transform 0.3s;
+}
+
+.social-item span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Hover Effects: เปลี่ยนสีตามแบรนด์เมื่อเอาเมาส์ชี้ */
+.social-item:hover {
+    transform: translateY(-5px); /* ลอยขึ้นเล็กน้อย */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    color: white; /* ตัวหนังสือเปลี่ยนเป็นสีขาว */
+    border-color: transparent;
+}
+
+/* กำหนดสีพื้นหลังเมื่อ Hover ตามแบรนด์ */
+.social-item.line:hover { background-color: #06C755; }
+.social-item.facebook:hover { background-color: #1877F2; }
+.social-item.instagram:hover { background: linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d); }
+.social-item.tiktok:hover { background-color: #000000; }
+.social-item.threads:hover { background-color: #000000; }
+.social-item.twitter:hover { background-color: #000000; }
+.social-item.lemon8:hover { background-color: #FFD200; color: #333; } /* Lemon8 สีเหลือง ตัวหนังสือดำ */
+
+/* --- FORM STYLES --- */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.contact-form input, 
+.contact-form select, 
+.contact-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    background-color: #f9fafb;
+}
+
+.contact-form input:focus, 
+.contact-form select:focus, 
+.contact-form textarea:focus {
+    outline: none;
+    border-color: #6b21a8; /* สีม่วงเมื่อพิมพ์ */
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #6b21a8 0%, #a855f7 100%); /* ปุ่มไล่เฉดม่วง */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.3s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-submit:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.btn-submit i {
+    transition: transform 0.3s;
+}
+
+.btn-submit:hover i {
+    transform: translateX(5px) rotate(-10deg); /* ไอคอนเครื่องบินขยับ */
+}
