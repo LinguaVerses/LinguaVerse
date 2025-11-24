@@ -24,7 +24,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 // ============================================================
-//  ⚠️ นำค่า Config เดิมของคุณมาวางทับตรงนี้ (ตรวจสอบลูกน้ำ , ให้ครบทุกบรรทัดนะคะ) ⚠️
+// ⚠️ นำค่า Config เดิมของคุณมาวางทับตรงนี้ (ตรวจสอบลูกน้ำ , ให้ครบทุกบรรทัดนะคะ) ⚠️
 // ============================================================
 const firebaseConfig = {
     apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
@@ -44,21 +44,23 @@ let currentOpenNovelId = null;
 let currentOpenChapterId = null;
 let currentOpenChapterTitle = null;
 let novelCache = [];
+
+// ตัวแปรสำคัญสำหรับเก็บข้อมูลจริงเพื่อใช้ในการค้นหา
 let currentEditingNovelId = null;
 let currentEditingChapterId = null;
 let currentNovelChapters = [];
 
 // ตารางคะแนน (บาท -> Points)
 const pointPackages = {
-    "25": 255,   
-    "50": 515,   
-    "75": 770,   
+    "25": 255,    
+    "50": 515,    
+    "75": 770,    
     "100": 1025, 
     "150": 1530  
 };
 
 // ============================================================
-//  1. HELPER FUNCTIONS
+//  1. HELPER FUNCTIONS (จัดการ Dropdown และข้อมูลพื้นฐาน)
 // ============================================================
 
 async function loadNovelsForDropdown(elementId) {
@@ -96,9 +98,9 @@ async function loadNovelsForDropdown(elementId) {
     selectEl.innerHTML = '<option value="">กำลังโหลดนิยาย...</option>';
     try {
         const querySnapshot = await getDocs(collection(db, "novels"));
-        novelCache = [];
-        selectEl.innerHTML = `<option value="">เลือกนิยาย (${querySnapshot.size} เรื่อง)</option>`;
+        novelCache = []; // รีเซ็ต Cache
         
+        selectEl.innerHTML = `<option value="">เลือกนิยาย (${querySnapshot.size} เรื่อง)</option>`;
         querySnapshot.forEach((doc) => {
             const novel = doc.data();
             novel.id = doc.id;
@@ -277,7 +279,6 @@ window.loadAdminTopupRequests = async function() {
     if (!db || !container) return;
     
     container.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
-    
     try {
         const q = query(collection(db, "topup_requests"), where("status", "==", "pending"));
         const querySnapshot = await getDocs(q);
@@ -286,7 +287,6 @@ window.loadAdminTopupRequests = async function() {
         querySnapshot.forEach((doc) => {
             requests.push({ id: doc.id, ...doc.data() });
         });
-
         requests.sort((a, b) => a.createdAt - b.createdAt);
         
         container.innerHTML = '';
@@ -338,11 +338,9 @@ window.approveTopup = async function(reqId, userId, points, username) {
                     status: 'completed',
                     approvedAt: Timestamp.now()
                 });
-
                 await updateDoc(doc(db, "users", userId), {
                     balancePoints: increment(points)
                 });
-
                 Swal.fire('สำเร็จ!', 'เติม Points เรียบร้อยแล้ว', 'success');
                 window.loadAdminTopupRequests();
                 checkAdminNotifications();
@@ -381,6 +379,9 @@ window.rejectTopup = async function(reqId) {
     });
 }
 
+// ============================================================
+//  [UPDATED] CORE FUNCTION: Load Novels (Real Data + New Design)
+// ============================================================
 async function loadNovels() {
     if (!db) return;
     const containers = {
@@ -398,79 +399,114 @@ async function loadNovels() {
     if(homeUpdatesContainer) homeUpdatesContainer.innerHTML = ''; 
     
     try {
+        // ดึงข้อมูลจริงจาก Firebase
         const querySnapshot = await getDocs(collection(db, "novels"));
-        novelCache = []; 
-        let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
-        
-        // --- 🕒 ใช้เวลา 3 วัน ตามปกติ ---
-        const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); 
-        
         let allNovels = [];
+        novelCache = []; 
         querySnapshot.forEach((doc) => {
             allNovels.push({ id: doc.id, ...doc.data() });
         });
+        // เก็บ Cache ไว้สำหรับการค้นหา
+        novelCache = allNovels;
+        // เรียงลำดับตามวันที่อัปเดตล่าสุด
         allNovels.sort((a, b) => {
-            const timeA = a.lastChapterUpdatedAt ? a.lastChapterUpdatedAt.toDate().getTime() : 0;
-            const timeB = b.lastChapterUpdatedAt ? b.lastChapterUpdatedAt.toDate().getTime() : 0;
+            const timeA = a.lastChapterUpdatedAt ? (a.lastChapterUpdatedAt.toDate ? a.lastChapterUpdatedAt.toDate().getTime() : 0) : 0;
+            const timeB = b.lastChapterUpdatedAt ? (b.lastChapterUpdatedAt.toDate ? b.lastChapterUpdatedAt.toDate().getTime() : 0) : 0;
             return timeB - timeA;
         });
+        const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); // 3 วัน
+        let novelCount = { KR: 0, CN: 0, EN: 0, JP: 0 };
         allNovels.forEach(novel => {
             const novelId = novel.id;
-            novelCache.push(novel); 
-            const lang = novel.language.toUpperCase(); 
+            const lang = novel.language ? novel.language.toUpperCase() : 'OTHER'; 
+            
             if (containers[lang]) {
                 novelCount[lang]++;
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
+                
+                // --- [NEW DESIGN] การ์ดนิยายแบบสวยงาม ---
+                card.className = "bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-gray-100 group";
                 card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
+                
+                // Logic Badge (ลิขสิทธิ์ & New)
                 let licensedBadge = '';
                 if (novel.isLicensed) {
-                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
+                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow">ลิขสิทธิ์</span>';
                 }
                 let newBadge = '';
                 let isNew = false;
-                
-                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > timeAgoLimit) {
-                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
+                if (novel.lastChapterUpdatedAt && (novel.lastChapterUpdatedAt.toDate ? novel.lastChapterUpdatedAt.toDate().getTime() : 0) > timeAgoLimit) {
+                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse shadow">NEW</span>';
                     isNew = true;
                 }
+
+                // Rating & Category (Safe check)
+                const rating = novel.rating || '5.0';
+                const category = (novel.categories && novel.categories.length > 0) ? novel.categories[0] : 'นิยาย';
+                // HTML Structure ของการ์ดแบบใหม่
                 card.innerHTML = `
-                    <div class="relative">
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
+                    <div class="relative overflow-hidden h-64">
+                        <img src="${novel.coverImageUrl || 'https://placehold.co/300x450'}" alt="${novel.title_en}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                         ${licensedBadge}
                         ${newBadge}
                     </div>
-                    <div class="p-3">
-                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
+                    <div class="p-4">
+                         <div class="flex justify-between items-start mb-2">
+                             <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 truncate max-w-[70%]">${category}</span>
+                            <span class="text-xs text-yellow-500 flex items-center"><i data-lucide="star" class="w-3 h-3 mr-1 fill-current"></i> ${rating}</span>
+                        </div>
+                        <h4 class="font-bold text-gray-800 text-md truncate mb-1" title="${novel.title_en}">${novel.title_en}</h4>
+                        <p class="text-sm text-gray-500 truncate mb-3">${novel.author}</p>
+                         <div class="flex justify-between items-center text-xs text-gray-400 border-t pt-3">
+                            <span class="${novel.status === 'Ongoing' ? 'text-green-500' : 'text-blue-500'} font-medium">${novel.status}</span>
+                        </div>
                     </div>
                 `;
                 containers[lang].appendChild(card);
                 
-                if (isNew && homeUpdatesContainer && homeUpdatesContainer.childElementCount < 5) {
+                // Update Home List (เฉพาะ 4 เรื่องแรกที่ใหม่สุด)
+                if (homeUpdatesContainer && homeUpdatesContainer.childElementCount < 4) {
                      const homeCard = document.createElement('div');
-                     homeCard.className = "flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer";
+                     homeCard.className = "flex items-center space-x-4 p-3 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer border-b border-gray-100 last:border-0";
                      homeCard.onclick = () => window.showNovelDetail(novelId, novel.status);
+                     
+                     // เวลาอัปเดต (แปลง timestamp เป็น string)
+                     let updateTimeStr = "ล่าสุด";
+                     if(novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate) {
+                         updateTimeStr = novel.lastChapterUpdatedAt.toDate().toLocaleDateString('th-TH');
+                     }
+
                      homeCard.innerHTML = `
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-12 h-16 object-cover rounded">
-                        <div>
-                            <h5 class="font-semibold text-purple-700">${novel.title_en}</h5>
-                            <p class="text-sm text-gray-500">${novel.author}</p>
+                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-16 h-20 object-cover rounded shadow-sm flex-shrink-0">
+                        <div class="flex-grow min-w-0">
+                             <h4 class="font-bold text-gray-800 truncate text-base">${novel.title_en}</h4>
+                            <p class="text-sm text-purple-600 mb-1"><i data-lucide="clock" class="w-3 h-3 inline"></i> ${updateTimeStr}</p>
+                            <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                <span class="bg-gray-100 px-2 py-0.5 rounded">${lang}</span>
+                                 <span class="truncate max-w-[100px]">${novel.author}</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button class="text-purple-600 hover:text-purple-800 bg-white border border-purple-200 hover:border-purple-600 px-3 py-1 rounded-full text-xs transition-all">อ่าน</button>
                         </div>
                      `;
                      homeUpdatesContainer.appendChild(homeCard);
                 }
             }
         });
+        // Hide Loading & Show Empty State
         ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
             const loadingText = document.getElementById(`novel-loading-${lang.toLowerCase()}`);
             if (loadingText) loadingText.style.display = 'none'; 
             if (novelCount[lang] === 0 && containers[lang]) {
-                containers[lang].innerHTML = '<p class="text-gray-500 col-span-full">ยังไม่มีนิยายในหมวดนี้...</p>';
+                containers[lang].innerHTML = '<p class="text-gray-500 col-span-full py-8 text-center">ยังไม่มีนิยายในหมวดนี้...</p>';
             }
         });
         if (homeUpdatesContainer && homeUpdatesContainer.childElementCount === 0) {
             homeUpdatesContainer.innerHTML = '<p class="text-gray-500">ยังไม่มีนิยายที่อัปเดต...</p>';
         }
+        // Refresh Icons
+        if (window.lucide) window.lucide.createIcons();
     } catch (error) {
         console.error("Error loading novels: ", error);
         ['KR', 'CN', 'EN', 'JP'].forEach(lang => {
@@ -481,7 +517,9 @@ async function loadNovels() {
     }
 }
 
-// --- New Function: Filter Novels ---
+// ============================================================
+//  [UPDATED] Filter Novels (ใช้ดีไซน์ใหม่ + ข้อมูลจริง)
+// ============================================================
 window.filterNovels = function() {
     const searchText = document.getElementById('search-input').value.toLowerCase();
     const statusFilter = document.getElementById('filter-status').value;
@@ -493,15 +531,14 @@ window.filterNovels = function() {
         'EN': document.getElementById('novel-container-en'),
         'JP': document.getElementById('novel-container-jp')
     };
-
     // Clear all containers first
     for(let key in containers) {
         if(containers[key]) containers[key].innerHTML = '';
     }
 
-    const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000); // 3 วัน
+    const timeAgoLimit = Date.now() - (3 * 24 * 60 * 60 * 1000);
     let hasResults = { 'KR': false, 'CN': false, 'EN': false, 'JP': false };
-
+    // ใช้ novelCache (ข้อมูลจริง) ในการค้นหา
     novelCache.forEach(novel => {
         // Filter Logic
         const matchText = novel.title_en.toLowerCase().includes(searchText) || 
@@ -510,75 +547,115 @@ window.filterNovels = function() {
         const matchCategory = categoryFilter === "" || (novel.categories && novel.categories.includes(categoryFilter));
 
         if (matchText && matchStatus && matchCategory) {
-            const lang = novel.language.toUpperCase();
+            const lang = novel.language ? novel.language.toUpperCase() : 'OTHER';
             if (containers[lang]) {
                 hasResults[lang] = true;
-
-                // Render Card
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105 cursor-pointer";
-                card.setAttribute('onclick', `window.showNovelDetail('${novel.id}', '${novel.status}')`); 
-                
+                card.className = "bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-gray-100 group";
+                card.setAttribute('onclick', `window.showNovelDetail('${novel.id}', '${novel.status}')`);
                 let licensedBadge = '';
                 if (novel.isLicensed) {
-                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">ลิขสิทธิ์</span>';
+                    licensedBadge = '<span class="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow">ลิขสิทธิ์</span>';
                 }
                 let newBadge = '';
-                if (novel.lastChapterUpdatedAt && novel.lastChapterUpdatedAt.toDate().getTime() > timeAgoLimit) {
-                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse">NEW</span>';
+                if (novel.lastChapterUpdatedAt && (novel.lastChapterUpdatedAt.toDate ? novel.lastChapterUpdatedAt.toDate().getTime() : 0) > timeAgoLimit) {
+                    newBadge = '<span class="absolute top-2 right-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded animate-pulse shadow">NEW</span>';
                 }
-
+                const rating = novel.rating || '5.0';
+                const category = (novel.categories && novel.categories.length > 0) ? novel.categories[0] : 'นิยาย';
                 card.innerHTML = `
-                    <div class="relative">
-                        <img src="${novel.coverImageUrl}" alt="${novel.title_en}" class="w-full h-auto aspect-[2/3] object-cover">
+                    <div class="relative overflow-hidden h-64">
+                        <img src="${novel.coverImageUrl || 'https://placehold.co/300x450'}" alt="${novel.title_en}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                         ${licensedBadge}
                         ${newBadge}
                     </div>
-                    <div class="p-3">
-                        <h4 class="font-bold text-md truncate">${novel.title_en}</h4>
+                    <div class="p-4">
+                         <div class="flex justify-between items-start mb-2">
+                             <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 truncate max-w-[70%]">${category}</span>
+                            <span class="text-xs text-yellow-500 flex items-center"><i data-lucide="star" class="w-3 h-3 mr-1 fill-current"></i> ${rating}</span>
+                        </div>
+                        <h4 class="font-bold text-gray-800 text-md truncate mb-1">${novel.title_en}</h4>
+                         <div class="flex justify-between items-center text-xs text-gray-400 border-t pt-3">
+                            <span class="${novel.status === 'Ongoing' ? 'text-green-500' : 'text-blue-500'} font-medium">${novel.status}</span>
+                        </div>
                     </div>
                 `;
                 containers[lang].appendChild(card);
             }
         }
     });
-
     // Show "Not Found" message if empty
     for(let key in containers) {
         if(!hasResults[key] && containers[key]) {
-            containers[key].innerHTML = '<p class="text-gray-400 col-span-full">ไม่พบนิยายที่ค้นหา...</p>';
+            containers[key].innerHTML = '<p class="text-gray-400 col-span-full text-center py-4">ไม่พบนิยายที่ค้นหา...</p>';
         }
     }
+    if (window.lucide) window.lucide.createIcons();
 }
 
+// ============================================================
+//  2. STANDARD FUNCTIONS (Admin, Comments, Details - คงเดิมไว้)
+// ============================================================
+
+// [UPDATED] Check Admin Notifications (ซ่อนเลข 0 อย่างสมบูรณ์ 100%)
 async function checkAdminNotifications() {
     if (!db || !currentUserData || currentUserData.role !== 'admin') {
         return;
     }
+    
+    // Elements
     const commentBadge = document.getElementById('admin-notify-badge');
     const topupBadge = document.getElementById('admin-topup-badge');
-    
+    const inboxBadge = document.getElementById('admin-inbox-badge');
+    const inboxBtn = document.getElementById('admin-inbox-btn');
+
+    if(inboxBtn) inboxBtn.style.display = 'block';
+
     try {
-        // Check Comments
+        // 1. Check Comments
         const qComment = query(collection(db, "comments"), where("isReadByAdmin", "==", false));
         const snapComment = await getDocs(qComment);
-        const commentCount = snapComment.size;
-        if (commentCount > 0) {
-            commentBadge.textContent = commentCount > 9 ? '9+' : commentCount;
-            commentBadge.classList.remove('hidden');
-        } else {
-            commentBadge.classList.add('hidden');
+        if (commentBadge) {
+            const count = snapComment.size;
+            if (count > 0) {
+                commentBadge.textContent = count > 9 ? '9+' : count;
+                commentBadge.classList.remove('hidden');
+                commentBadge.style.display = ''; // Reset display
+            } else {
+                commentBadge.classList.add('hidden');
+                commentBadge.style.display = 'none'; // Force hide
+                commentBadge.textContent = ''; // Clear text
+            }
         }
 
-        // Check Pending Topups
+        // 2. Check Pending Topups
         const qTopup = query(collection(db, "topup_requests"), where("status", "==", "pending"));
         const snapTopup = await getDocs(qTopup);
-        const topupCount = snapTopup.size;
-        if (topupCount > 0) {
-            topupBadge.textContent = topupCount > 9 ? '9+' : topupCount;
-            topupBadge.classList.remove('hidden');
-        } else {
-            topupBadge.classList.add('hidden');
+        if (topupBadge) {
+            const count = snapTopup.size;
+            if (count > 0) {
+                topupBadge.textContent = count > 9 ? '9+' : count;
+                topupBadge.classList.remove('hidden');
+                topupBadge.style.display = ''; 
+            } else {
+                topupBadge.classList.add('hidden');
+                topupBadge.style.display = 'none';
+            }
+        }
+
+        // 3. Check Contact Messages
+        const qInbox = query(collection(db, "contact_messages"), where("isReadByAdmin", "==", false));
+        const snapInbox = await getDocs(qInbox);
+        if (inboxBadge) {
+            const count = snapInbox.size;
+            if (count > 0) {
+                inboxBadge.textContent = count > 9 ? '9+' : count;
+                inboxBadge.classList.remove('hidden');
+                inboxBadge.style.display = ''; 
+            } else {
+                inboxBadge.classList.add('hidden');
+                inboxBadge.style.display = 'none';
+            }
         }
 
     } catch (error) {
@@ -666,7 +743,7 @@ async function checkUserLikeStatus(novelId, totalLikes) {
     }
 }
 
-// --- Updated: Load Novel Details with Read More Logic ---
+// --- Load Novel Details with Read More Logic ---
 async function loadNovelDetails(novelId) {
     if (!db || !novelId) return;
     document.getElementById('detail-cover-img').src = 'https://placehold.co/400x600/C4B5FD/FFFFFF?text=Loading...';
@@ -677,21 +754,20 @@ async function loadNovelDetails(novelId) {
     document.getElementById('detail-status').textContent = '...';
     document.getElementById('detail-chapters-count').textContent = '...'; 
     
-    // Reset Description & Button (สำคัญมาก! ต้อง reset ก่อนโหลดใหม่)
+    // Reset Description & Button
     const descEl = document.getElementById('detail-description');
     const toggleBtn = document.getElementById('toggle-desc-btn');
     descEl.innerHTML = '<p>กำลังโหลดเรื่องย่อ...</p>';
-    descEl.className = "text-gray-600 novel-content mb-2 transition-all duration-300"; // Reset classes to default
+    descEl.className = "text-gray-600 novel-content mb-2 transition-all duration-300";
     if(toggleBtn) {
-        toggleBtn.classList.add('hidden'); 
-        toggleBtn.textContent = 'อ่านต่อ... (Read More)'; // Reset text
+        toggleBtn.classList.add('hidden');
+        toggleBtn.textContent = 'อ่านต่อ... (Read More)'; 
     }
 
     document.getElementById('detail-categories').innerHTML = '<span class="bg-gray-200 text-gray-500 text-sm px-3 py-1 rounded-full animate-pulse">...</span>';
-    
     const likeBtn = document.getElementById('detail-like-btn');
     likeBtn.innerHTML = `<i data-lucide="heart"></i> <span>Like (...)</span>`;
-    likeBtn.disabled = true; 
+    likeBtn.disabled = true;
     likeBtn.className = "mt-4 w-full bg-pink-100 text-pink-600 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors";
     try {
         const docRef = doc(db, "novels", novelId);
@@ -704,10 +780,8 @@ async function loadNovelDetails(novelId) {
             document.getElementById('detail-author').textContent = novel.author;
             document.getElementById('detail-language').textContent = novel.language.toUpperCase();
             document.getElementById('detail-status').textContent = novel.status;
-            
             // --- ส่วนจัดการเรื่องย่อ (ใหม่) ---
-            descEl.innerHTML = novel.description;
-            
+            descEl.innerHTML = novel.description || "ไม่มีเรื่องย่อ";
             // ตรวจสอบความสูงของเนื้อหา
             setTimeout(() => {
                 if (descEl.scrollHeight > 180) {
@@ -717,7 +791,7 @@ async function loadNovelDetails(novelId) {
                         toggleBtn.textContent = 'อ่านต่อ... (Read More) ▼';
                     }
                 } else {
-                    descEl.classList.remove('desc-truncated');
+                   descEl.classList.remove('desc-truncated');
                 }
             }, 50);
             // --------------------------------
@@ -736,7 +810,7 @@ async function loadNovelDetails(novelId) {
             }
             loadAuthorOtherWorks(novel.author, novelId);
             checkUserLikeStatus(novelId, novel.totalLikes || 0);
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         } else {
             console.error("No such novel document!");
             document.getElementById('detail-title-en').textContent = 'ไม่พบนิยายนี้';
@@ -768,6 +842,7 @@ async function loadNovelChapters(novelId) {
     const chaptersCountEl = document.getElementById('detail-chapters-count');
     chapterListContainer.innerHTML = '<div class="p-3 text-gray-500">กำลังโหลดสารบัญ...</div>';
     chaptersCountEl.textContent = '...';
+
     try {
         const q = query(collection(db, "chapters"), where("novelId", "==", novelId));
         const querySnapshot = await getDocs(q);
@@ -779,14 +854,12 @@ async function loadNovelChapters(novelId) {
         
         const now = new Date();
         const isAdmin = currentUserData && currentUserData.role === 'admin';
-        
-        // Filter chapters: Hide if (scheduledTime > now) AND (user is NOT admin)
+        // Filter chapters
         const visibleChapters = chapters.filter(chapter => {
             const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0); 
             if (isAdmin) return true; // Admin sees everything
             return scheduledDate <= now; // User sees only released chapters
         });
-
         chaptersCountEl.textContent = `${visibleChapters.length} ตอน`;
         chapterListContainer.innerHTML = '';
         if (visibleChapters.length === 0) {
@@ -812,7 +885,7 @@ async function loadNovelChapters(novelId) {
             const chapterEl = document.createElement('div');
             chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer";
             chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
-            const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}${scheduleBadge}</span>`;
+             const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}${scheduleBadge}</span>`;
             const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type, isUnlocked);
             chapterEl.innerHTML = titleSpan + badgeSpan;
             chapterListContainer.appendChild(chapterEl);
@@ -852,18 +925,28 @@ async function loadNovelChapterList(novelId) {
 function createReaderNavigation(currentChapterId) {
     const navButtons = document.getElementById('reader-navigation-buttons');
     if (!navButtons) return;
-    
     const currentIndex = currentNovelChapters.findIndex(c => c.id === currentChapterId);
     let prevButton = `<button disabled class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg flex items-center"><i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> ตอนก่อนหน้า</button>`;
     let nextButton = `<button disabled class="px-4 py-2 bg-gray-200 text-gray-500 rounded-lg flex items-center">ตอนถัดไป <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></button>`;
+    const now = new Date();
+    const isAdmin = currentUserData && currentUserData.role === 'admin';
     if (currentIndex > 0) {
         const prevChapter = currentNovelChapters[currentIndex - 1];
-        prevButton = `<button onclick="window.showReaderPage('${prevChapter.id}', ${prevChapter.pointCost})" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center"><i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> ตอนก่อนหน้า</button>`;
+        const prevDate = prevChapter.scheduledAt ? prevChapter.scheduledAt.toDate() : new Date(0);
+        if (isAdmin || prevDate <= now) {
+            prevButton = `<button onclick="window.showReaderPage('${prevChapter.id}', ${prevChapter.pointCost})" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center"><i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> ตอนก่อนหน้า</button>`;
+        }
     }
 
     if (currentIndex < currentNovelChapters.length - 1) {
         const nextChapter = currentNovelChapters[currentIndex + 1];
-        nextButton = `<button onclick="window.showReaderPage('${nextChapter.id}', ${nextChapter.pointCost})" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center">ตอนถัดไป <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></button>`;
+        const nextDate = nextChapter.scheduledAt ? nextChapter.scheduledAt.toDate() : new Date(0);
+        
+        if (isAdmin || nextDate <= now) {
+            nextButton = `<button onclick="window.showReaderPage('${nextChapter.id}', ${nextChapter.pointCost})" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 flex items-center">ตอนถัดไป <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i></button>`;
+        } else {
+            nextButton = `<button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg flex items-center cursor-not-allowed">รอเผยแพร่... <i data-lucide="lock" class="w-4 h-4 ml-1"></i></button>`;
+        }
     }
     
     navButtons.innerHTML = `${prevButton} ${nextButton}`;
@@ -890,6 +973,22 @@ async function loadChapterContent(chapterId) {
         const docSnap = await getDoc(chapterDocRef);
         if (docSnap.exists()) {
             const chapter = docSnap.data();
+            const now = new Date();
+            const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0);
+            const isAdmin = currentUserData && currentUserData.role === 'admin';
+            if (!isAdmin && scheduledDate > now) {
+                readerChapterTitle.textContent = 'ยังไม่เปิดให้อ่าน';
+                readerContentDiv.innerHTML = `
+                    <div class="text-center p-10">
+                        <h3 class="text-xl font-bold text-red-500 mb-2">⚠️ ตอนนี้ยังไม่เผยแพร่</h3>
+                        <p class="text-gray-600">กรุณารอจนถึงเวลาที่กำหนด</p>
+                        <p class="text-sm text-gray-400 mt-2">เผยแพร่เมื่อ: ${scheduledDate.toLocaleString()}</p>
+                    </div>
+                `;
+                createReaderNavigation(chapterId);
+                return;
+            }
+
             readerChapterTitle.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
             readerContentDiv.innerHTML = chapter.content;
             currentOpenChapterTitle = chapter.title; 
@@ -906,42 +1005,90 @@ async function loadChapterContent(chapterId) {
     }
 }
 
+// --- โหลดคอมเมนต์ ---
 async function loadComments(chapterId) {
     const container = document.getElementById('reader-comment-container');
     if (!db || !container) return;
+    
     container.innerHTML = '<p class="text-gray-500 p-3">กำลังโหลดคอมเมนต์...</p>';
     try {
         const q = query(collection(db, "comments"), where("chapterId", "==", chapterId));
         const querySnapshot = await getDocs(q);
-        let comments = [];
+        let allComments = [];
         querySnapshot.forEach((doc) => {
-            comments.push({ id: doc.id, ...doc.data() });
+            allComments.push({ id: doc.id, ...doc.data() });
         });
-        comments.sort((a, b) => a.createdAt - b.createdAt);
+        allComments.sort((a, b) => a.createdAt - b.createdAt);
+
+        let myLikedCommentIds = new Set();
+        if (currentUser) {
+            const likesSnap = await getDocs(collection(db, `users/${currentUser.uid}/likedComments`));
+            likesSnap.forEach(doc => myLikedCommentIds.add(doc.id));
+        }
+
+        const parentComments = allComments.filter(c => !c.parentCommentId);
+        const childComments = allComments.filter(c => c.parentCommentId);
+
         container.innerHTML = ''; 
-        if (comments.length === 0) {
+        if (parentComments.length === 0) {
             container.innerHTML = '<p class="text-gray-500 p-3">ยังไม่มีคอมเมนต์...</p>';
             return;
         }
-        comments.forEach(comment => {
-            if (comment.parentCommentId) return; 
-            const profileImg = "https://placehold.co/40x40/A5B4FC/FFFFFF?text=C";
-            const commentEl = document.createElement('div');
-            commentEl.className = 'flex space-x-3';
-            commentEl.innerHTML = `
-                <img src="${profileImg}" class="rounded-full w-10 h-10">
-                <div class="flex-1">
-                    <div class="bg-gray-100 p-3 rounded-lg">
-                        <span class="font-semibold">${comment.username}</span>
-                        <p>${comment.message.replace(/\n/g, '<br>')}</p>
-                    </div>
-                    <div class="flex space-x-3 text-sm text-gray-500 mt-1">
-                        <span>Like (${comment.totalLikes})</span>
-                        <span>Reply</span>
+
+        const createCommentHTML = (comment, isReply = false) => {
+            const profileImg = comment.profileIcon === 'default' 
+                ? "https://placehold.co/40x40/A5B4FC/FFFFFF?text=" + (comment.username ? comment.username[0].toUpperCase() : 'U')
+                : comment.profileIcon;
+            const isLiked = myLikedCommentIds.has(comment.id);
+            const likeColorClass = isLiked ? "text-pink-600" : "text-gray-400 hover:text-pink-500";
+            const fillVal = isLiked ? "currentColor" : "none";
+            
+            let replyBtnHTML = '';
+            if (!isReply) {
+                replyBtnHTML = `<span class="cursor-pointer hover:text-purple-600 ml-4" onclick="window.toggleReplyBox('${comment.id}')">Reply</span>`;
+            }
+
+            const marginLeft = isReply ? 'ml-12 border-l-2 border-purple-100 pl-3 mt-2' : 'mt-4';
+            const cardBg = isReply ? 'bg-gray-50' : 'bg-white border border-gray-200';
+            return `
+            <div class="flex flex-col ${marginLeft}" id="comment-block-${comment.id}">
+                <div class="flex space-x-3">
+                    <img src="${profileImg}" class="rounded-full w-10 h-10 object-cover border border-gray-200">
+                    <div class="flex-1">
+                         <div class="${cardBg} p-3 rounded-lg shadow-sm relative group">
+                            <div class="flex justify-between items-start">
+                                <span class="font-semibold text-purple-700 text-sm">${comment.username}</span>
+                                <span class="text-xs text-gray-400">${comment.createdAt ? comment.createdAt.toDate().toLocaleString() : ''}</span>
+                            </div>
+                            <p class="text-gray-700 mt-1 text-sm">${comment.message.replace(/\n/g, '<br>')}</p>
+                        </div>
+                        
+                        <div class="flex items-center text-xs mt-1.5 ml-1 select-none">
+                            <button onclick="window.toggleCommentLike('${comment.id}')" class="flex items-center space-x-1 ${likeColorClass} transition-colors duration-200 group">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${fillVal}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transform group-active:scale-125 transition-transform">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                                <span class="font-medium">Like (${comment.totalLikes || 0})</span>
+                            </button>
+                            ${replyBtnHTML}
+                        </div>
+                    
+                        <div id="reply-box-${comment.id}" class="hidden mt-2 flex space-x-2 animate-fade-in">
+                            <input type="text" id="reply-input-${comment.id}" placeholder="ตอบกลับคุณ ${comment.username}..." class="flex-1 border rounded-full px-4 py-1 text-sm focus:outline-none focus:border-purple-500 bg-gray-50">
+                            <button onclick="window.submitReply('${comment.id}')" class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs hover:bg-purple-700 shadow-sm">ส่ง</button>
+                        </div>
                     </div>
                 </div>
+            </div>
             `;
-            container.appendChild(commentEl);
+        };
+
+        parentComments.forEach(parent => {
+            container.innerHTML += createCommentHTML(parent, false);
+            const replies = childComments.filter(c => c.parentCommentId === parent.id);
+            replies.forEach(reply => {
+                container.innerHTML += createCommentHTML(reply, true);
+            });
         });
     } catch (error) {
         console.error("Error loading comments:", error);
@@ -949,8 +1096,73 @@ async function loadComments(chapterId) {
     }
 }
 
+// --- ฟังก์ชัน Comment Like & Reply ---
+window.toggleCommentLike = async function(commentId) {
+    if (!currentUser) {
+        Swal.fire('กรุณาเข้าสู่ระบบ', 'ต้อง Login ก่อนกด Like นะคะ', 'warning');
+        return;
+    }
+    const commentRef = doc(db, "comments", commentId);
+    const userLikeRef = doc(db, `users/${currentUser.uid}/likedComments/${commentId}`);
+    try {
+        const likeSnap = await getDoc(userLikeRef);
+        if (likeSnap.exists()) {
+            await deleteDoc(userLikeRef);
+            await updateDoc(commentRef, { totalLikes: increment(-1) });
+        } else {
+            await setDoc(userLikeRef, { likedAt: Timestamp.now() });
+            await updateDoc(commentRef, { totalLikes: increment(1) });
+        }
+        loadComments(currentOpenChapterId);
+    } catch (error) {
+        console.error("Error toggling comment like:", error);
+    }
+}
+
+window.toggleReplyBox = function(commentId) {
+    const box = document.getElementById(`reply-box-${commentId}`);
+    if (box) {
+        if (box.classList.contains('hidden')) {
+            box.classList.remove('hidden');
+            setTimeout(() => document.getElementById(`reply-input-${commentId}`).focus(), 100);
+        } else {
+            box.classList.add('hidden');
+        }
+    }
+}
+
+window.submitReply = async function(parentCommentId) {
+    if (!currentUser) return;
+    const inputEl = document.getElementById(`reply-input-${parentCommentId}`);
+    const message = inputEl.value.trim();
+    if (!message) return;
+    try {
+        const commentData = {
+            chapterId: currentOpenChapterId,
+            novelId: currentOpenNovelId,
+            chapterTitle: currentOpenChapterTitle || '...',
+            userId: currentUser.uid,
+            username: currentUserData.username,
+            profileIcon: "default",
+            message: message,
+            parentCommentId: parentCommentId,
+            totalLikes: 0,
+            createdAt: Timestamp.now(),
+            isReadByAdmin: false
+        };
+        await addDoc(collection(db, "comments"), commentData);
+        inputEl.value = '';
+        document.getElementById(`reply-box-${parentCommentId}`).classList.add('hidden');
+        loadComments(currentOpenChapterId);
+        checkAdminNotifications();
+    } catch (error) {
+        console.error("Error submitting reply:", error);
+        Swal.fire('Error', 'ส่งข้อความตอบกลับไม่สำเร็จ', 'error');
+    }
+}
+
 // ============================================================
-//  2. WINDOW FUNCTIONS
+//  3. WINDOW FUNCTIONS (Navigation & Helpers)
 // ============================================================
 
 window.showPage = function(pageId) {
@@ -976,6 +1188,9 @@ window.showPage = function(pageId) {
     if (pageId === 'page-admin-topup') {
         loadAdminTopupRequests();
     }
+    if (pageId === 'page-admin-inbox') {  // <--- เพิ่มเงื่อนไขนี้เพื่อให้โหลดกล่องข้อความ
+        loadAdminInbox();
+    }
     if (window.scrollToTop) window.scrollToTop();
     if (window.lucide) window.lucide.createIcons();
 }
@@ -990,22 +1205,17 @@ window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = 
     }
 }
 
-// --- ฟังก์ชันใหม่: กดเพื่อย่อ/ขยาย เรื่องย่อ ---
 window.toggleDescription = function() {
     const descEl = document.getElementById('detail-description');
     const btn = document.getElementById('toggle-desc-btn');
-
     if (descEl.classList.contains('desc-truncated')) {
-        // ถ้ากำลังย่ออยู่ -> ให้ขยาย
         descEl.classList.remove('desc-truncated');
         descEl.classList.add('desc-expanded');
         btn.textContent = 'ย่อลง (Show Less) ▲';
     } else {
-        // ถ้ากำลังขยายอยู่ -> ให้ย่อกลับ
         descEl.classList.remove('desc-expanded');
         descEl.classList.add('desc-truncated');
         btn.textContent = 'อ่านต่อ... (Read More) ▼';
-        // เลื่อนหน้าจอกลับไปหาหัวข้อเรื่องย่อ (เผื่อคนอ่านเลื่อนลงไปไกล)
         descEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
@@ -1015,6 +1225,8 @@ window.setAdminNovelMode = function(mode) {
     const title = document.getElementById('admin-novel-form-title');
     const saveBtnText = document.getElementById('admin-novel-save-btn-text');
     const tabBtn = document.getElementById('admin-tab-add-novel');
+    const deleteBtn = document.getElementById('admin-delete-novel-btn'); // <--- ปุ่มลบ
+
     if (mode === 'add') {
         currentEditingNovelId = null; 
         form.reset();
@@ -1024,12 +1236,58 @@ window.setAdminNovelMode = function(mode) {
         saveBtnText.textContent = "Save New";
         tabBtn.classList.add('bg-purple-600', 'text-white');
         tabBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        
+        if(deleteBtn) deleteBtn.classList.add('hidden'); // ซ่อนปุ่มลบตอนเพิ่มใหม่
+
     } else if (mode === 'edit') {
         title.textContent = `กำลังแก้ไข: ${document.getElementById('novel-title-en').value}`;
         saveBtnText.textContent = "Update Novel";
         tabBtn.classList.remove('bg-purple-600', 'text-white');
         tabBtn.classList.add('bg-gray-200', 'text-gray-700');
+
+        if(deleteBtn) deleteBtn.classList.remove('hidden'); // แสดงปุ่มลบตอนแก้ไข
     }
+}
+
+// [NEW] Function to Delete Novel
+window.deleteCurrentNovel = async function() {
+    if (!currentEditingNovelId) return;
+
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: "นิยายเรื่องนี้จะหายไปจากระบบทันที! (กู้คืนไม่ได้)",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // 1. ลบเอกสารนิยายจาก Collection 'novels'
+                await deleteDoc(doc(db, "novels", currentEditingNovelId));
+
+                // 2. (Optional) ลบ Chapters ที่เกี่ยวข้อง (เพื่อความสะอาดของ DB)
+                // หมายเหตุ: การลบแบบนี้อาจต้องทำ Batch Delete ถ้ามีตอนเยอะมากๆ แต่เบื้องต้นเอาแค่นี้ก่อน
+                const q = query(collection(db, "chapters"), where("novelId", "==", currentEditingNovelId));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(async (doc) => {
+                    await deleteDoc(doc.ref);
+                });
+
+                Swal.fire('ลบเรียบร้อย!', 'นิยายถูกลบออกจากระบบแล้ว', 'success');
+                
+                // 3. รีเซ็ตหน้าจอ
+                window.setAdminNovelMode('add');
+                loadNovels(); // โหลดรายการนิยายใหม่
+
+            } catch (error) {
+                console.error("Error deleting novel:", error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบนิยายได้', 'error');
+            }
+        }
+    });
 }
 
 window.setAdminChapterMode = function(mode) {
@@ -1075,7 +1333,6 @@ window.closeImageModal = function() {
 window.showReaderPage = function(chapterId, pointCost) {
     console.log(`Attempting to read chapter ${chapterId} with cost ${pointCost}`);
     currentOpenChapterId = chapterId;
-    
     if (!currentUser || !currentUserData) {
         Swal.fire({
             icon: 'info',
@@ -1089,21 +1346,20 @@ window.showReaderPage = function(chapterId, pointCost) {
         return;
     }
 
-    // --- แก้ไข: ตรวจสอบสิทธิ์ Admin หรือเคยซื้อแล้ว ---
     if (currentUserData.role === 'admin') {
-        loadChapterContent(chapterId); // Admin อ่านฟรีทันที
+        loadChapterContent(chapterId);
         return;
     }
     
     if (currentUserData.unlockedChapters && currentUserData.unlockedChapters.includes(chapterId)) {
-        loadChapterContent(chapterId); // เคยซื้อแล้ว อ่านได้เลย
+        loadChapterContent(chapterId);
         return;
     }
 
     if (pointCost === 0) {
-        loadChapterContent(chapterId); // ตอนฟรี
+        loadChapterContent(chapterId);
     } else {
-        window.showPointAlert(chapterId, pointCost); // ต้องจ่ายเงิน
+        window.showPointAlert(chapterId, pointCost);
     }
 }
 
@@ -1143,7 +1399,6 @@ window.showPointAlert = function(chapterId, pointCost) {
                 currentUserData.balancePoints = newPoints;
                 if (!currentUserData.unlockedChapters) currentUserData.unlockedChapters = [];
                 currentUserData.unlockedChapters.push(chapterId);
-
                 document.getElementById('user-points').textContent = `${newPoints} Points`;
                 Swal.fire('หัก Point สำเร็จ!', `ระบบหัก ${pointCost} Points. คุณมี ${newPoints} Points`, 'success');
                 loadChapterContent(chapterId);
@@ -1193,18 +1448,46 @@ window.toggleNovelLike = async function() {
     }
 }
 
+// [UPDATED] Mark Comment As Read (Fix 0 Issue)
 window.markCommentAsRead = async function(commentId) {
     if (!db) return;
+    const card = document.getElementById(`comment-card-${commentId}`);
+    if (card) {
+        card.style.transition = "opacity 0.3s";
+        card.style.opacity = "0";
+        setTimeout(() => card.style.display = 'none', 300);
+    }
+    const badge = document.getElementById('admin-notify-badge');
+    if (badge) {
+        let currentCount = parseInt(badge.innerText) || 0;
+        if (isNaN(currentCount)) currentCount = 0;
+        if (currentCount > 0) {
+            const newCount = currentCount - 1;
+            if (newCount <= 0) {
+                badge.classList.add('hidden');
+                badge.style.display = 'none'; // Force hide
+                badge.innerText = ''; // Clear text
+                
+                const container = document.getElementById('admin-notify-container');
+                if(container && container.children.length <= 1) { 
+                     container.innerHTML = '<p class="text-gray-500 p-3 text-center">ไม่มีคอมเมนต์ที่ยังไม่อ่าน</p>';
+                }
+            } else {
+                badge.innerText = newCount > 9 ? '9+' : newCount;
+            }
+        }
+    }
     try {
         const commentDocRef = doc(db, 'comments', commentId);
         await updateDoc(commentDocRef, {
             isReadByAdmin: true
         });
-        document.getElementById(`comment-card-${commentId}`).style.display = 'none';
-        checkAdminNotifications();
     } catch (error) {
         console.error("Error marking comment as read:", error);
-        Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+        if (card) {
+            card.style.display = 'block';
+            card.style.opacity = '1';
+        }
     }
 }
 
@@ -1241,7 +1524,7 @@ window.logout = function() {
 }
 
 // ============================================================
-//  3. WINDOW.ONLOAD
+//  4. INITIALIZATION & EVENT LISTENERS
 // ============================================================
 
 window.onload = function() {
@@ -1253,7 +1536,7 @@ window.onload = function() {
     
     try {
         // เช็คว่ามีการใส่ Config หรือยัง
-        if (firebaseConfig.apiKey === "นำรหัสของคุณมาใส่ตรงนี้" || firebaseConfig.apiKey.includes("xxx")) {
+        if (firebaseConfig.apiKey === "xxx" || firebaseConfig.apiKey.includes("นำรหัส")) {
             Swal.fire('Config Error', 'กรุณาใส่ Firebase Config ในไฟล์ app.js บรรทัดบนสุด', 'error');
             throw new Error("Missing Firebase Config");
         }
@@ -1264,23 +1547,39 @@ window.onload = function() {
         console.log("Firebase initialized successfully!");
     } catch (error) {
         console.error("Firebase initialization failed:", error);
-        // ถ้า Error ตรงนี้ สคริปต์จะหยุดทำงาน ทำให้ปุ่มต่างๆ ไม่ทำงานด้วย
-        return; 
+        return;
     }
     
-    // --- TOGGLE PASSWORD VISIBILITY (แก้ไขให้ทำงานชัวร์ๆ) ---
+    // --- Protection: ป้องกันคลิกขวาและการ Copy ---
+    document.addEventListener('contextmenu', function(e) {
+        // ป้องกันเฉพาะส่วนที่เป็นการอ่านนิยาย หรือรูปภาพ
+        if (e.target.closest('.novel-read-container') || e.target.tagName === 'IMG') {
+            e.preventDefault();
+            return false;
+        }
+    });
+    document.onkeydown = function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            if (['c', 'x', 'u', 's'].includes(e.key.toLowerCase())) {
+                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                     return true;
+                 }
+                 e.preventDefault();
+                 return false;
+            }
+        }
+    };
+    // ---------------------------------------------
+
     function setupPasswordToggle(btnId, inputId, iconId) {
         const btn = document.getElementById(btnId);
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);
-        
         if (btn && input && icon) {
             btn.addEventListener('click', (e) => {
-                e.preventDefault(); // ป้องกันการกดปุ่มแล้ว Form Submit
+                e.preventDefault();
                 const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
                 input.setAttribute('type', type);
-                
-                // เปลี่ยนไอคอน
                 if (type === 'text') {
                     icon.setAttribute('data-lucide', 'eye');
                 } else {
@@ -1291,13 +1590,18 @@ window.onload = function() {
         }
     }
 
-    // เรียกใช้ฟังก์ชันสำหรับหน้า Login และ Register
     setupPasswordToggle('reg-toggle-password', 'reg-password', 'reg-toggle-icon');
     setupPasswordToggle('login-toggle-password', 'login-password', 'login-toggle-icon');
     
-    // Event Listeners
     const loadNovelEditBtn = document.getElementById('load-novel-to-edit-btn');
     if(loadNovelEditBtn) loadNovelEditBtn.addEventListener('click', loadNovelForEditing);
+
+    // --- [NEW] Event Listener สำหรับปุ่มลบนิยาย ---
+    const deleteNovelBtn = document.getElementById('admin-delete-novel-btn');
+    if(deleteNovelBtn) {
+        deleteNovelBtn.addEventListener('click', window.deleteCurrentNovel);
+    }
+    // -----------------------------------------------
 
     const addNovelForm = document.getElementById('add-novel-form');
     if(addNovelForm) {
@@ -1348,6 +1652,45 @@ window.onload = function() {
     
     const loadChapterEditBtn = document.getElementById('load-chapter-to-edit-btn');
     if(loadChapterEditBtn) loadChapterEditBtn.addEventListener('click', loadChapterForEditing);
+    // ============================================================
+    // [NEW] Logic to check duplicate chapters
+    // ============================================================
+    const checkDuplicateChapter = async (novelId, chapterNum) => {
+        if(!novelId || isNaN(chapterNum)) return false;
+        const q = query(collection(db, "chapters"),
+            where("novelId", "==", novelId),
+            where("chapterNumber", "==", chapterNum)
+        );
+        const snap = await getDocs(q);
+        if(snap.empty) return false;
+
+        // ถ้ามีข้อมูล ต้องเช็คว่าเป็นตัวเดียวกับที่กำลังแก้หรือไม่
+        let isDup = false;
+        snap.forEach(doc => {
+            // ถ้ากำลังแก้ไข และ id ตรงกับตัวที่กำลังแก้ = ไม่นับว่าซ้ำ
+            if (currentEditingChapterId && doc.id === currentEditingChapterId) {
+                // Pass (ตัวเอง)
+            } else {
+                isDup = true;
+            }
+        });
+        return isDup;
+    };
+    // Event Listener: ตรวจสอบทันทีที่พิมพ์เสร็จ (Blur/Change)
+    const chapNumInput = document.getElementById('chapter-number');
+    if(chapNumInput) {
+        chapNumInput.addEventListener('change', async function() {
+            const novelId = document.getElementById('chapter-novel-select').value;
+            const num = parseFloat(this.value);
+            if(novelId && !isNaN(num)) {
+                if(await checkDuplicateChapter(novelId, num)) {
+                    Swal.fire('แจ้งเตือน', `ตอนที่ ${num} มีอยู่ในระบบแล้ว!`, 'warning');
+                }
+            }
+        });
+    }
+    // ============================================================
+
 
     const addChapterForm = document.getElementById('add-chapter-form');
     if(addChapterForm) {
@@ -1382,6 +1725,13 @@ window.onload = function() {
                 Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอก "นิยาย", "ตอนที่", และ "ชื่อตอน" ให้ครบ', 'warning');
                 return;
             }
+
+            // [NEW] ตรวจสอบซ้ำก่อนบันทึกจริง (กันเหนียว)
+            if(await checkDuplicateChapter(chapterData.novelId, chapterData.chapterNumber)) {
+                Swal.fire('บันทึกไม่สำเร็จ', `เลขตอนซ้ำ! ตอนที่ ${chapterData.chapterNumber} มีอยู่แล้ว กรุณาตรวจสอบเลขตอนอีกครั้ง`, 'error');
+                return;
+            }
+
             const parentNovelRef = doc(db, 'novels', chapterData.novelId);
             try {
                 if (currentEditingChapterId) {
@@ -1439,39 +1789,31 @@ window.onload = function() {
     }
     const commentBtn = document.getElementById('reader-comment-post-btn');
     if(commentBtn) commentBtn.addEventListener('click', saveComment);
-    
-    // --- Topup Form Submission (New) ---
+
     const topupForm = document.getElementById('topup-form');
     if(topupForm) {
         topupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             if (!currentUser) {
                 Swal.fire('กรุณาเข้าสู่ระบบ', 'คุณต้องเข้าสู่ระบบก่อนแจ้งโอนเงิน', 'error');
                 return;
             }
-
             const amount = document.getElementById('topup-amount').value;
             const time = document.getElementById('topup-time').value;
-
             if (!amount || !time) {
                 Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกยอดเงินและระบุเวลาโอน', 'warning');
                 return;
             }
-
-            // คำนวณ Points
             const points = pointPackages[amount] || 0;
-
             const requestData = {
                 userId: currentUser.uid,
                 username: currentUserData.username,
                 amount: parseInt(amount),
                 points: points,
-                transferTime: time, // เก็บเป็น string จาก input ไปเลย ง่ายต่อการอ่าน
-                status: 'pending', // สถานะรอตรวจสอบ
+                transferTime: time,
+                status: 'pending',
                 createdAt: Timestamp.now()
             };
-
             try {
                 await addDoc(collection(db, "topup_requests"), requestData);
                 Swal.fire({
@@ -1480,8 +1822,8 @@ window.onload = function() {
                     icon: 'success'
                 });
                 topupForm.reset();
-                document.getElementById('point-username').value = currentUserData.username; // ใส่ชื่อกลับเข้าไป
-                checkAdminNotifications(); // อัปเดตแจ้งเตือนแอดมิน (เผื่อแอดมินลองระบบเอง)
+                document.getElementById('point-username').value = currentUserData.username;
+                checkAdminNotifications();
             } catch (error) {
                 console.error("Error saving topup request:", error);
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อมูลได้', 'error');
@@ -1489,13 +1831,36 @@ window.onload = function() {
         });
     }
 
+    setupDonateForm();
+    setupContactForm(); // <--- [NEW] เรียกใช้ฟังก์ชัน Contact Form ตรงนี้
+
     const registerForm = document.getElementById('register-form');
     if(registerForm) {
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault(); 
-            const username = document.getElementById('reg-username').value;
-            const email = document.getElementById('reg-email').value;
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
+            
+            // --- UPDATED: ดึงค่าจากช่องยืนยันรหัสผ่าน ---
+            const confirmPasswordInput = document.getElementById('reg-confirm-password');
+            const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+            // --- VALIDATION LOGIC ---
+            if (username.length < 4) {
+                 Swal.fire('ชื่อผู้ใช้สั้นเกินไป', 'กรุณาตั้งชื่อผู้ใช้งานอย่างน้อย 4 ตัวอักษร', 'warning');
+                 return;
+            }
+            if (password !== confirmPassword) {
+                 Swal.fire('รหัสผ่านไม่ตรงกัน', 'กรุณากรอกช่องรหัสผ่านและยืนยันรหัสผ่านให้ตรงกัน', 'error');
+                 return;
+            }
+            if (password.length < 6) {
+                 Swal.fire('รหัสผ่านสั้นเกินไป', 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', 'warning');
+                 return;
+            }
+            // ------------------------
+
             createUserWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
@@ -1507,7 +1872,7 @@ window.onload = function() {
                         role: 'user', 
                         createdAt: Timestamp.now(),
                         likedNovels: [],
-                        unlockedChapters: [] // เริ่มต้นด้วยอาเรย์ว่าง
+                        unlockedChapters: [] 
                     });
                 })
                 .then(() => {
@@ -1548,7 +1913,7 @@ window.onload = function() {
         const userUsername = document.getElementById('user-username');
         const userPoints = document.getElementById('user-points');
         const adminNotifyBtn = document.getElementById('admin-notify-btn');
-        const adminTopupBtn = document.getElementById('admin-topup-btn'); // ปุ่มใหม่
+        const adminTopupBtn = document.getElementById('admin-topup-btn');
         const adminSettingsBtn = document.getElementById('admin-settings-btn');
         const pointPageUsername = document.getElementById('point-username');
         const readerCommentUsername = document.getElementById('reader-comment-username');
@@ -1572,15 +1937,14 @@ window.onload = function() {
                         if (readerCommentUsername) readerCommentUsername.textContent = currentUserData.username;
                         if (commentInputBox) commentInputBox.style.display = 'block';
                         
-                        // Admin Controls
                         if (currentUserData.role === 'admin') {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'block';
-                            if(adminTopupBtn) adminTopupBtn.style.display = 'block'; // ปุ่มใหม่
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'block';
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'block';
                             checkAdminNotifications(); 
                         } else {
                             if(adminNotifyBtn) adminNotifyBtn.style.display = 'none';
-                            if(adminTopupBtn) adminTopupBtn.style.display = 'none'; // ปุ่มใหม่
+                            if(adminTopupBtn) adminTopupBtn.style.display = 'none';
                             if(adminSettingsBtn) adminSettingsBtn.style.display = 'none';
                         }
                         loadNovels();
@@ -1613,3 +1977,286 @@ window.onload = function() {
         }
     });
 };
+// ============================================================
+//  5. COFFEE (DONATE) FUNCTIONS
+// ============================================================
+
+window.selectCoffee = function(amount) {
+    // Reset selection styles
+    document.querySelectorAll('.coffee-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    // Highlight selected card
+    const selectedCard = document.getElementById(`cup-${amount}`);
+    if(selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+
+    // Show donate section
+    const section = document.getElementById('donate-section');
+    section.classList.remove('hidden');
+    // Update form values
+    document.getElementById('donate-amount-display').textContent = `฿${amount}`;
+    document.getElementById('donate-amount-val').value = amount;
+    // Auto-fill username if logged in
+    if (currentUserData) {
+        document.getElementById('donate-name').value = currentUserData.username;
+    }
+    
+    // Smooth scroll to form
+    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+window.setupDonateForm = function() {
+    const form = document.getElementById('donate-form');
+    if(form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('donate-amount-val').value;
+            const name = document.getElementById('donate-name').value;
+            const message = document.getElementById('donate-message').value;
+
+            if(!amount || !name) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุชื่อผู้เลี้ยงกาแฟด้วยนะคะ', 'warning');
+                return;
+            }
+
+            try {
+                // บันทึกลง Collection 'donations' (แยกจาก topup_requests เพราะไม่มีผลต่อ Point)
+                await addDoc(collection(db, "donations"), {
+                    amount: parseInt(amount),
+                    donorName: name,
+                    message: message,
+                    userId: currentUser ? currentUser.uid : null, // เก็บ ID ไว้ (ถ้ามี) เผื่อในอนาคตอยากทำ Badge แฟนตัวยง
+                    createdAt: Timestamp.now(),
+                    isReadByAdmin: false
+                });
+                Swal.fire({
+                    title: 'ขอบคุณมากค่ะ! ❤️',
+                    text: 'ได้รับพลังเรียบร้อยแล้ว สัญญาว่าจะตั้งใจแปลงานดีๆ ให้อ่านกันต่อไปนะคะ',
+                    imageUrl: 'https://i.pinimg.com/originals/9d/f7/53/9df753370d3f57e6d1325129db200f93.gif', // ใส่รูป GIF น่ารักๆ (ถ้าต้องการ) หรือลบบรรทัดนี้ออก
+                    imageWidth: 200,
+                    imageHeight: 200,
+                    imageAlt: 'Thank You',
+                    confirmButtonColor: '#f97316',
+                    confirmButtonText: 'ด้วยความยินดี'
+                });
+                // Reset Form
+                form.reset();
+                document.getElementById('donate-section').classList.add('hidden');
+                document.querySelectorAll('.coffee-card').forEach(c => c.classList.remove('selected'));
+                
+                // (Optional) อาจจะแจ้งเตือนแอดมินด้วยก็ได้ถ้าต้องการ แต่ตอนนี้แค่บันทึกเงียบๆ
+
+            } catch (error) {
+                console.error("Error saving donation:", error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่นะคะ', 'error');
+            }
+        });
+    }
+}
+
+// ============================================================
+//  6. CONTACT FORM FUNCTION (UPDATED: บันทึกลงฐานข้อมูลโดยตรง)
+// ============================================================
+window.setupContactForm = function() {
+    const contactForm = document.getElementById('contactForm');
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) { // เพิ่ม async
+            e.preventDefault();
+
+            // 1. ดึงค่าจากฟอร์ม
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const topic = document.getElementById('topic').value;
+            const message = document.getElementById('message').value;
+
+            // ตรวจสอบความเรียบร้อย
+            if (!name || !email || !message) {
+                Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบถ้วนนะคะ', 'warning');
+                return;
+            }
+
+            // 2. เตรียมข้อมูลที่จะบันทึก
+            const contactData = {
+                senderName: name,
+                senderEmail: email,
+                topic: topic,
+                message: message,
+                sentAt: Timestamp.now(), // ใช้วันเวลาปัจจุบัน
+                isReadByAdmin: false,     // สถานะ: แอดมินยังไม่ได้อ่าน
+                userId: currentUser ? currentUser.uid : null, // เก็บ ID ถ้าลูกค้าล็อกอินอยู่
+                username: currentUserData ? currentUserData.username : 'Guest' // เก็บชื่อ User ถ้ามี
+            };
+
+            try {
+                // 3. แสดง Loading ระหว่างส่ง
+                Swal.fire({
+                    title: 'กำลังส่งข้อความ...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // 4. บันทึกลง Collection ชื่อ "contact_messages" ใน Firebase
+                await addDoc(collection(db, "contact_messages"), contactData);
+
+                // 5. แจ้งเตือนสำเร็จ
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งข้อความเรียบร้อย!',
+                    text: 'แอดมินได้รับข้อความแล้ว จะรีบติดต่อกลับให้เร็วที่สุดค่ะ',
+                    confirmButtonColor: '#6b21a8'
+                });
+
+                // Reset Form (ล้างค่าในช่อง)
+                contactForm.reset();
+                
+                // (ถ้าเป็นแอดมิน) ให้เช็คแจ้งเตือนทันที
+                checkAdminNotifications();
+
+            } catch (error) {
+                console.error("Error sending contact message:", error);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อความได้ในขณะนี้ กรุณาลองใหม่ภายหลัง', 'error');
+            }
+        });
+    }
+}
+
+// ============================================================
+//  7. ADMIN INBOX FUNCTIONS (ระบบอ่านจดหมาย)
+// ============================================================
+
+window.loadAdminInbox = async function() {
+    const container = document.getElementById('admin-inbox-list');
+    if (!db || !container) return;
+
+    container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">กำลังโหลดข้อความ...</td></tr>';
+
+    try {
+        // ดึงข้อมูลจาก Contact Messages
+        const q = query(collection(db, "contact_messages")); // ดึงทั้งหมด
+        const querySnapshot = await getDocs(q);
+        
+        let messages = [];
+        querySnapshot.forEach((doc) => {
+            messages.push({ id: doc.id, ...doc.data() });
+        });
+
+        // เรียงลำดับ: ใหม่ล่าสุดขึ้นก่อน (และเอาที่ยังไม่อ่านขึ้นบนสุด)
+        messages.sort((a, b) => {
+            if (a.isReadByAdmin === b.isReadByAdmin) {
+                return b.sentAt - a.sentAt; // ถ้าสถานะเหมือนกัน ให้เรียงตามเวลา
+            }
+            return a.isReadByAdmin ? 1 : -1; // เอาที่ยังไม่อ่าน (false) ขึ้นก่อน
+        });
+
+        container.innerHTML = '';
+        if (messages.length === 0) {
+            container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">ยังไม่มีข้อความส่งเข้ามา</td></tr>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const row = document.createElement('tr');
+            // ถ้ายังไม่อ่าน ให้พื้นหลังเป็นสีขาว ถ้าอ่านแล้วเป็นสีเทาอ่อน
+            row.className = msg.isReadByAdmin ? "bg-gray-50 text-gray-500" : "bg-white font-medium";
+            
+            const dateDisplay = msg.sentAt ? msg.sentAt.toDate().toLocaleString('th-TH') : '-';
+            const statusBadge = msg.isReadByAdmin 
+                ? '<span class="px-2 py-1 text-xs text-green-600 bg-green-100 rounded-full">อ่านแล้ว</span>' 
+                : '<span class="px-2 py-1 text-xs text-red-600 bg-red-100 rounded-full animate-pulse">ใหม่</span>';
+
+            row.innerHTML = `
+                <td class="p-4 whitespace-nowrap text-xs text-gray-400">
+                    ${dateDisplay}
+                    <div class="mt-1">${statusBadge}</div>
+                </td>
+                <td class="p-4 align-top">
+                    <div class="font-bold text-purple-700">${msg.senderName}</div>
+                    <div class="text-xs text-gray-500">${msg.senderEmail}</div>
+                </td>
+                <td class="p-4 align-top">
+                    <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border">${msg.topic}</span>
+                </td>
+                <td class="p-4 align-top max-w-xs">
+                    <p class="line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">${msg.message}</p>
+                </td>
+                <td class="p-4 text-center align-top space-y-2">
+                    ${!msg.isReadByAdmin ? 
+                        `<button onclick="window.markMessageAsRead('${msg.id}')" class="w-full text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded shadow">รับทราบ</button>` 
+                        : ''}
+                    <button onclick="window.deleteMessage('${msg.id}')" class="w-full text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded">ลบ</button>
+                </td>
+            `;
+            container.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Error loading inbox:", error);
+        container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-red-500">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+    }
+}
+
+window.markMessageAsRead = async function(msgId) {
+    try {
+        await updateDoc(doc(db, "contact_messages", msgId), {
+            isReadByAdmin: true
+        });
+        
+        // [NEW] Instant UI Update: ลดตัวเลข Inbox ทันทีโดยไม่ต้องรอโหลดใหม่
+        const badge = document.getElementById('admin-inbox-badge');
+        if (badge && !badge.classList.contains('hidden')) {
+             let count = parseInt(badge.textContent) || 0;
+             count = Math.max(0, count - 1);
+             if (count === 0) {
+                 badge.classList.add('hidden');
+                 badge.style.display = 'none';
+             } else {
+                 badge.textContent = count > 9 ? '9+' : count;
+             }
+        }
+
+        // โหลดหน้าใหม่เพื่อให้สถานะเปลี่ยน (ในตาราง)
+        window.loadAdminInbox();
+        // window.checkAdminNotifications(); // ไม่จำเป็นต้องเรียกซ้ำเพราะเราลดตัวเลขเองแล้ว
+    } catch (error) {
+        console.error("Error marking read:", error);
+    }
+}
+
+window.deleteMessage = async function(msgId) {
+    Swal.fire({
+        title: 'ลบข้อความ?',
+        text: "ลบแล้วกู้คืนไม่ได้นะคะ",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'ลบเลย'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                // เช็คก่อนลบว่าข้อความนี้อ่านหรือยัง ถ้ายังไม่อ่านต้องลด Badge ด้วย
+                // แต่เพื่อความง่าย เราจะลด Badge เสมอถ้าข้อความหายไปและ Badge ยังโชว์อยู่
+                // (Logic จริงซับซ้อนกว่านี้ แต่แค่นี้ก็เพียงพอสำหรับ Admin คนเดียว)
+                
+                await deleteDoc(doc(db, "contact_messages", msgId));
+                
+                // [NEW] Instant UI Update: ลดตัวเลข Inbox ทันที
+                const badge = document.getElementById('admin-inbox-badge');
+                if (badge && !badge.classList.contains('hidden')) {
+                     // เราอาจจะไม่รู้ว่าข้อความที่ลบมัน 'อ่านแล้ว' หรือยัง 
+                     // แต่การเรียก checkAdminNotifications ทีหลังจะช่วยแก้ให้ถูกเอง
+                     // ดังนั้นตรงนี้เราปล่อยผ่าน หรือจะเรียก checkAdminNotifications() ก็ได้
+                     window.checkAdminNotifications();
+                }
+
+                window.loadAdminInbox();
+                Swal.fire('ลบแล้ว', 'ข้อความถูกลบออกจากระบบ', 'success');
+            } catch (error) {
+                Swal.fire('Error', 'ลบไม่สำเร็จ', 'error');
+            }
+        }
+    });
+}
