@@ -1,7 +1,43 @@
-/* ตั้งค่า Font หลัก */
+/* 1. พื้นหลังแบบ Dreamy Gradient */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f7f3ff;
+    /* สีพื้นหลังไล่ระดับแบบนุ่มนวล */
+    background: radial-gradient(circle at 0% 0%, #ede9fe 0%, #fff 50%, #f3e8ff 100%);
+    background-attachment: fixed; /* ให้พื้นหลังนิ่งเวลาเลื่อนจอ */
+    color: #4b5563;
+}
+
+/* 2. ฟอนต์หัวข้อให้ดูเหมือนปกหนังสือ */
+h1, h2, h3, .novel-title {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 0.5px;
+}
+
+/* การ์ดนิยาย - Glass Style */
+.novel-card {
+    background: rgba(255, 255, 255, 0.8); /* สีขาวโปร่งแสง */
+    backdrop-filter: blur(10px);         /* เบลอฉากหลัง */
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* เงาบางๆ */
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* เอฟเฟกต์เด้งดึ๋ง */
+    overflow: hidden;
+}
+
+/* Hover Effect: ลอยขึ้น + เงาสีม่วง */
+.novel-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(124, 58, 237, 0.15), 0 10px 10px -5px rgba(124, 58, 237, 0.1);
+    border-color: rgba(167, 139, 250, 0.5);
+    z-index: 10;
+}
+
+/* รูปภาพในการ์ด */
+.novel-card img {
+    transition: transform 0.6s ease;
+}
+.novel-card:hover img {
+    transform: scale(1.1); /* ซูมภาพ */
 }
 
 /* ป้องกันการคัดลอก */
