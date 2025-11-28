@@ -425,7 +425,7 @@ async function loadNovels() {
                 const card = document.createElement('div');
                 
                 // --- [NEW DESIGN] การ์ดนิยายแบบสวยงาม ---
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-gray-100 group";
+                card.className = "novel-card group cursor-pointer relative";
                 card.setAttribute('onclick', `window.showNovelDetail('${novelId}', '${novel.status}')`); 
                 
                 // Logic Badge (ลิขสิทธิ์ & New)
@@ -551,7 +551,7 @@ window.filterNovels = function() {
             if (containers[lang]) {
                 hasResults[lang] = true;
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-gray-100 group";
+                card.className = "novel-card group cursor-pointer relative";
                 card.setAttribute('onclick', `window.showNovelDetail('${novel.id}', '${novel.status}')`);
                 let licensedBadge = '';
                 if (novel.isLicensed) {
