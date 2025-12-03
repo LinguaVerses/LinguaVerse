@@ -532,8 +532,25 @@
                                 <button type="button" onclick="window.formatDoc('bold', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Bold"><i data-lucide="bold" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('italic', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('underline', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Underline"><i data-lucide="underline" class="w-4 h-4"></i></button>
-                                <input type="color" title="Text Color" onchange="window.formatDoc('foreColor', 'novel-description-editor', this.value)" class="toolbar-color-picker w-7 h-7 p-0 m-0.5 align-middle">
-                                <button type="button" onclick="window.formatDoc('justifyLeft', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
+<div class="relative inline-block group">
+    <button type="button" class="p-1.5 hover:bg-gray-200 rounded text-gray-600" title="Text Color">
+        <i data-lucide="palette" class="w-4 h-4"></i> <span class="text-xs">▼</span>
+    </button>
+    <div class="absolute hidden group-hover:block bg-white border border-gray-300 shadow-lg rounded p-2 z-50 w-40" style="top: 100%; left: 0;">
+        <div class="grid grid-cols-4 gap-1">
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#3f3f3f')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #3f3f3f;" title="เทา"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#000000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #000000;" title="ดำ"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#ff0000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff0000;" title="แดง"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#0000ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #0000ff;" title="น้ำเงิน"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#1e90ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #1e90ff;" title="ฟ้า"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#228b22')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #228b22;" title="เขียว"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#ff1493')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff1493;" title="ชมพู"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#a52a2a')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #a52a2a;" title="น้ำตาล"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#9900ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #9900ff;" title="ม่วง"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#ff7f50')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff7f50;" title="ส้ม"></button>
+        </div>
+    </div>
+</div>                                <button type="button" onclick="window.formatDoc('justifyLeft', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyCenter', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Center"><i data-lucide="align-center" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyRight', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertOrderedList', 'novel-description-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Ordered List"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
@@ -616,8 +633,25 @@
                                 <button type="button" onclick="window.formatDoc('bold', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Bold"><i data-lucide="bold" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('italic', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Italic"><i data-lucide="italic" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('underline', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Underline"><i data-lucide="underline" class="w-4 h-4"></i></button>
-                                <input type="color" title="Text Color" onchange="window.formatDoc('foreColor', 'chapter-content-editor', this.value)" class="toolbar-color-picker w-7 h-7 p-0 m-0.5 align-middle">
-                                <button type="button" onclick="window.formatDoc('justifyLeft', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
+<div class="relative inline-block group">
+    <button type="button" class="p-1.5 hover:bg-gray-200 rounded text-gray-600" title="Text Color">
+        <i data-lucide="palette" class="w-4 h-4"></i> <span class="text-xs">▼</span>
+    </button>
+    <div class="absolute hidden group-hover:block bg-white border border-gray-300 shadow-lg rounded p-2 z-50 w-40" style="top: 100%; left: 0;">
+        <div class="grid grid-cols-4 gap-1">
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#3f3f3f')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #3f3f3f;" title="เทา"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#000000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #000000;" title="ดำ"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#ff0000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff0000;" title="แดง"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#0000ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #0000ff;" title="น้ำเงิน"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#1e90ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #1e90ff;" title="ฟ้า"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#228b22')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #228b22;" title="เขียว"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#ff1493')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff1493;" title="ชมพู"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#a52a2a')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #a52a2a;" title="น้ำตาล"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#9900ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #9900ff;" title="ม่วง"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'chapter-content-editor', '#ff7f50')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff7f50;" title="ส้ม"></button>
+        </div>
+    </div>
+</div>                                <button type="button" onclick="window.formatDoc('justifyLeft', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Left"><i data-lucide="align-left" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyCenter', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Center"><i data-lucide="align-center" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('justifyRight', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Align Right"><i data-lucide="align-right" class="w-4 h-4"></i></button>
                                 <button type="button" onclick="window.formatDoc('insertOrderedList', 'chapter-content-editor')" class="p-1.5 hover:bg-gray-200 rounded" title="Ordered List"><i data-lucide="list-ordered" class="w-4 h-4"></i></button>
