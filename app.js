@@ -1053,8 +1053,17 @@ window.showPage = function(pageId) {
 }
 
 window.formatDoc = function(cmd, editorId = 'novel-description-editor', value = null) {
+    // ป้องกันการ Submit Form อัตโนมัติถ้ากดปุ่มใน Form
+    if(event) event.preventDefault();
+    
     const editor = document.getElementById(editorId);
-    if (editor) { document.execCommand(cmd, false, value); editor.focus(); }
+    if (editor) {
+        editor.focus(); // ต้อง Focus ก่อนคำสั่งถึงจะทำงาน
+        document.execCommand(cmd, false, value);
+        editor.focus(); // Focus กลับมาอีกทีเพื่อให้พิมพ์ต่อได้เลย
+    } else {
+        console.error("Editor element not found:", editorId);
+    }
 }
 
 window.toggleDescription = function() {
