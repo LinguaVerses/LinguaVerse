@@ -787,7 +787,7 @@ async function loadNovelChapters(novelId, isReset = true) {
             const loadMoreDiv = document.createElement('div');
             loadMoreDiv.id = 'btn-load-more-chapters';
             loadMoreDiv.className = "p-3 text-center";
-            loadMoreDiv.innerHTML = `<button onclick="window.loadMoreChapters()" class="text-purple-600 hover:text-purple-800 font-medium text-sm">▼ โหลดตอนใหม่ๆ เพิ่มเติม (Load More)</button>`;
+            loadMoreDiv.innerHTML = `<button onclick="window.loadMoreChapters()" class="text-purple-600 hover:text-purple-800 font-medium text-sm">▼ โหลดตอนเก่าๆ เพิ่มเติม (Load More)</button>`;
             chapterListContainer.appendChild(loadMoreDiv);
         }
 
