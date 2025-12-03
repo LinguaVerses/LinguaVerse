@@ -48,11 +48,42 @@ h1, h2, h3, .novel-title {
     user-select: none;
 }
 
-/* Font สำหรับเนื้อหานิยาย */
+/* --- ส่วนเนื้อหานิยาย (Novel Content) --- */
+
+/* 1. ตั้งค่าที่กล่องหลัก (ตัวแม่) */
 .novel-content {
-    font-family: 'Sarabun', sans-serif;
-    font-size: 1.125rem; /* 18px */
+    font-family: 'Sarabun', sans-serif; /* หรือฟอนต์ที่คุณใช้ */
+    font-size: 1.125rem;
     line-height: 1.8;
+    
+    /* สั่งย่อหน้าตรงนี้ เพื่อดักจับข้อความบรรทัดแรก หรือข้อความที่ไม่มีแท็กหุ้ม */
+    text-indent: 40px; 
+    
+    /* ทำให้ตัวหนังสือคมชัด */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. ตั้งค่าที่ย่อหน้าย่อย (ตัวลูก) */
+.novel-content p, 
+.novel-content div {
+    /* เว้นระยะห่างระหว่างบรรทัด */
+    margin-bottom: 1.5em; 
+    margin-top: 0;
+    
+    /* ย้ำคำสั่งย่อหน้าอีกครั้ง (เผื่อบาง Browser รีเซ็ตค่า) */
+    text-indent: 40px; 
+    
+    /* บังคับให้แสดงผลเป็นก้อน (Block) เพื่อให้ margin ทำงานสมบูรณ์ */
+    display: block; 
+}
+
+/* แถม: แก้ปัญหากรณีมีรูปภาพแทรก แล้วย่อหน้าเบี้ยว */
+.novel-content img {
+    display: block;
+    margin: 20px auto; /* จัดรูปกึ่งกลาง */
+    max-width: 100%;
+    text-indent: 0; /* เอารูปภาพไม่ต้องย่อหน้า */
 }
 
 /* ซ่อน Page ทั้งหมดไว้ก่อน */
