@@ -33,6 +33,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyAEWniC7Ka-5a0lyBUuqhSswkNnYOd7wY4",
     authDomain: "linguaverse-novel.firebaseapp.com",
     projectId: "linguaverse-novel",
+    storageBucket: "linguaverse-novel.firebasestorage.app",
     messagingSenderId: "31579058890",
     appId: "1:31579058890:web:08c8f2ab8161eaf0587a33"
 };
@@ -1249,6 +1250,27 @@ window.showNovelDetail = function(novelId, status) {
 
 window.logout = function() { 
     signOut(auth).then(() => { currentUser = null; currentUserData = null; window.showPage('page-home'); });
+}
+
+// [NEW] ฟังก์ชันสำหรับค้นหาใน Dropdown
+window.filterDropdown = function(text, selectId) {
+    const select = document.getElementById(selectId);
+    const filter = text.toLowerCase();
+    const options = select.options;
+
+    // เริ่มลูปจาก 1 (ข้ามตัวเลือกแรกที่เป็นคำว่า "เลือกนิยาย...")
+    for (let i = 1; i < options.length; i++) {
+        const txtValue = options[i].text.toLowerCase();
+        // ถ้าเจอคำที่พิมพ์ ให้แสดง, ถ้าไม่เจอ ให้ซ่อน
+        if (txtValue.indexOf(filter) > -1) {
+            options[i].style.display = ""; 
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+    
+    // (Optional) ถ้าหาไม่เจอเลย หรือพิมพ์แล้วเหลือตัวเดียว ให้เลือกตัวนั้นอัตโนมัติ (Advanced)
+    // แต่เอาแค่ซ่อน/แสดงก่อนก็เพียงพอครับ
 }
 
 // ============================================================
