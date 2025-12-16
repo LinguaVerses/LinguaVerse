@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -18,7 +19,7 @@
     <header class="fixed top-0 w-full z-50 transition-all duration-300 bg-white/70 backdrop-blur-md border-b border-white/50 shadow-sm">
         <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2 cursor-pointer" onclick="window.showPage('page-home')">
-                <img src="https://placehold.co/40x40/C4B5FD/FFFFFF?text=LV" alt="Logo" class="rounded-full">
+                <img src="logo.png" alt="Logo" class="rounded-full w-10 h-10 object-cover">
                 <span class="text-2xl font-bold text-purple-600">LinguaVerse</span>
             </div>
 
@@ -467,12 +468,18 @@
                 </div>
                 <div id="admin-novel-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
                     <label for="edit-novel-select" class="block text-sm font-medium text-gray-700">เลือกนิยายที่จะแก้ไข</label>
-                    <div class="flex space-x-2 mt-1">
+                    <div id="admin-novel-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลือกนิยายที่จะแก้ไข</label>
+                    
+                    <input type="text" onkeyup="window.filterDropdown(this.value, 'edit-novel-select')" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..." class="w-full mb-2 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-purple-500">
+                    
+                    <div class="flex space-x-2">
                         <select id="edit-novel-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                             <option value="">(กำลังโหลดนิยาย...)</option>
                         </select>
                         <button type="button" id="load-novel-to-edit-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">Load</button>
                     </div>
+                </div>
                 </div>
                 <h3 id="admin-novel-form-title" class="text-xl font-semibold text-purple-700 mb-4">เพิ่มนิยายใหม่</h3>
                 <form id="add-novel-form" class="space-y-4">
@@ -538,7 +545,7 @@
     </button>
     <div class="absolute hidden group-hover:block bg-white border border-gray-300 shadow-lg rounded p-2 z-50 w-40" style="top: 100%; left: 0;">
         <div class="grid grid-cols-4 gap-1">
-            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#3f3f3f')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #3f3f3f;" title="เทา"></button>
+            <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#3f3f3f')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #666666;" title="เทา"></button>
             <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#000000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #000000;" title="ดำ"></button>
             <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#ff0000')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #ff0000;" title="แดง"></button>
             <button type="button" onclick="window.formatDoc('foreColor', 'novel-description-editor', '#0000ff')" class="w-6 h-6 rounded border border-gray-200" style="background-color: #0000ff;" title="น้ำเงิน"></button>
@@ -585,15 +592,17 @@
                     <button id="admin-tab-add-chapter" onclick="window.setAdminChapterMode('add')" class="px-4 py-2 bg-purple-600 text-white rounded-lg">เพิ่ม/แก้ไข ตอน</button>
                 </div>
                 
-                <div id="admin-chapter-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50 space-y-2">
+                <div id="admin-chapter-edit-loader" class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
                     <div>
-                        <label for="edit-chapter-novel-select" class="block text-sm font-medium text-gray-700">1. เลือกนิยาย</label>
-                        <select id="edit-chapter-novel-select" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-gray-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">1. เลือกนิยาย</label>
+                        <input type="text" onkeyup="window.filterDropdown(this.value, 'edit-chapter-novel-select')" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..." class="w-full mb-1 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-purple-500">
+                        
+                        <select id="edit-chapter-novel-select" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500">
                             <option value="">(กำลังโหลดนิยาย...)</option>
                         </select>
                     </div>
                     <div>
-                        <label for="edit-chapter-select" class="block text-sm font-medium text-gray-700">2. เลือกตอนที่จะแก้ไข</label>
+                        <label class="block text-sm font-medium text-gray-700">2. เลือกตอนที่จะแก้ไข</label>
                         <div class="flex space-x-2 mt-1">
                             <select id="edit-chapter-select" class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" disabled>
                                 <option value="">(กรุณาเลือกนิยายก่อน)</option>
@@ -607,9 +616,13 @@
 
                 <form id="add-chapter-form" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                        <input type="text" onkeyup="window.filterDropdown(this.value, 'chapter-novel-select')" placeholder="🔍 พิมพ์ชื่อเพื่อค้นหา..." class="w-full mb-1 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-purple-500">
+                        
                         <select id="chapter-novel-select" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
                             <option value="">เลือกนิยาย (กำลังโหลด...)</option>
                         </select>
+                    </div>
                         <input type="number" id="chapter-number" step="0.1" placeholder="ตอนที่ (เช่น 1, 2.5, 10)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <input type="text" id="chapter-title" placeholder="ชื่อตอน (เช่น บทที่ 1: การเริ่มต้น)" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                         <select id="chapter-point-type" class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500" required>
