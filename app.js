@@ -174,9 +174,25 @@ async function loadChaptersForEditDropdown(novelId) {
         chapters.forEach(chapter => {
             const option = document.createElement('option');
             option.value = chapter.id;
-            option.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+
+            // --- [ส่วนที่แก้ไขใหม่] ปรับการแสดงผลชื่อตอนในเมนูของ Admin ---
+            let fullTypeName = chapter.type;
+            if (chapter.type === 'Side') fullTypeName = 'Side Story';
+            else if (chapter.type === 'Special') fullTypeName = 'Special Story';
+            else if (chapter.type === 'Extra') fullTypeName = 'Extra Story';
+
+            if (chapter.type === 'Normal' || !chapter.type) {
+                // ถ้าเป็นตอนปกติ ให้แสดงรูปแบบเดิม
+                option.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+            } else {
+                // ถ้าเป็นตอนพิเศษ ให้แสดงชื่อเต็มนำหน้า เพื่อให้ Admin เลือกแก้ง่ายขึ้น
+                option.textContent = `[${fullTypeName}] ${chapter.title} (ลำดับที่: ${chapter.chapterNumber})`;
+            }
+            // -----------------------------------------------------------------
+
             selectEl.appendChild(option);
         });
+
     } catch (error) {
         console.error("Error loading chapters:", error);
         selectEl.innerHTML = '<option value="">!! โหลดไม่สำเร็จ !!</option>';
@@ -755,7 +771,7 @@ async function loadNovelChapters(novelId, isReset = true) {
         const now = new Date();
         const isAdmin = currentUserData && currentUserData.role === 'admin';
 
-        // วนลูปแสดงผล
+        // [UPDATED] วนลูปแสดงผล
         chapters.forEach(chapter => {
             const scheduledDate = chapter.scheduledAt ? chapter.scheduledAt.toDate() : new Date(0); 
             // ถ้าเป็น user ธรรมดา และยังไม่ถึงเวลาเผยแพร่ -> ไม่แสดง (หรือแสดงแบบล็อก)
@@ -774,7 +790,26 @@ async function loadNovelChapters(novelId, isReset = true) {
             const chapterEl = document.createElement('div');
             chapterEl.className = "flex justify-between items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100";
             chapterEl.onclick = () => window.showReaderPage(chapterId, chapter.pointCost);
-            const titleSpan = `<span class="text-gray-800">ตอนที่ ${chapter.chapterNumber}: ${chapter.title}${scheduleBadge}</span>`;
+            
+            // --- [ส่วนที่แก้ไขใหม่] ตรวจสอบประเภทเพื่อเปลี่ยนการแสดงชื่อตอน ---
+            let displayTitle = "";
+            let fullTypeName = chapter.type;
+            
+            // แปลงคำย่อเป็นชื่อเต็ม
+            if (chapter.type === 'Side') fullTypeName = 'Side Story';
+            else if (chapter.type === 'Special') fullTypeName = 'Special Story';
+            else if (chapter.type === 'Extra') fullTypeName = 'Extra Story';
+
+            if (chapter.type === 'Normal' || !chapter.type) {
+                // ถ้าเป็นตอนปกติ แสดง "ตอนที่ X: ชื่อเรื่อง"
+                displayTitle = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+            } else {
+                // ถ้าเป็นตอนพิเศษ ให้แสดงชื่อเต็ม (Full Name) และซ่อนตัวเลขที่ใช้เรียงลำดับ
+                displayTitle = `<span class="font-bold text-purple-700">${fullTypeName}</span>: ${chapter.title}`;
+            }
+            // -----------------------------------------------------
+
+            const titleSpan = `<span class="text-gray-800">${displayTitle}${scheduleBadge}</span>`;
             const badgeSpan = getChapterBadge(chapter.pointCost, chapter.type, isUnlocked);
             chapterEl.innerHTML = titleSpan + badgeSpan;
             chapterListContainer.appendChild(chapterEl);
@@ -884,7 +919,20 @@ async function loadChapterContent(chapterId) {
                 return;
             }
 
-            readerChapterTitle.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+           // --- [ส่วนที่แก้ไขใหม่] ตรวจสอบประเภทเพื่อแสดงชื่อตอนในหน้านักอ่าน ---
+            let fullTypeName = chapter.type;
+            if (chapter.type === 'Side') fullTypeName = 'Side Story';
+            else if (chapter.type === 'Special') fullTypeName = 'Special Story';
+            else if (chapter.type === 'Extra') fullTypeName = 'Extra Story';
+
+            if (chapter.type === 'Normal' || !chapter.type) {
+                // ถ้าเป็นตอนปกติ แสดง "ตอนที่ X: ชื่อเรื่อง"
+                readerChapterTitle.textContent = `ตอนที่ ${chapter.chapterNumber}: ${chapter.title}`;
+            } else {
+                // ถ้าเป็นตอนพิเศษ แสดงชื่อเต็ม เช่น "Side Story: ชื่อเรื่อง"
+                readerChapterTitle.textContent = `${fullTypeName}: ${chapter.title}`;
+            }
+            // ------------------------------------------------------------------
             currentOpenChapterTitle = chapter.title;
 
             readerContentDiv.innerHTML = chapter.content || '<p class="text-gray-400 text-center">-- ไม่พบเนื้อหา --</p>';
